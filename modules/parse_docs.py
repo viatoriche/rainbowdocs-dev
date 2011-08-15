@@ -9,10 +9,45 @@
 # TODO:
 
 from openchain import settings
-from openchain.modules import odftools
+from openchain.modules.odftools import odf
+import os
+import re
+
+class Parser():
+    def __init__(self):
+        self.dir_printforms = settings.PRINT_FORMS_DIR
+
+    def find_tags(self, txt): # find {% tagname|description %}
+        tags = []
+        for t in re.findall(r'{%\s+(.+)\s+%}', txt):
+            st = t.split('|')
+            name = st[0]
+            try:
+                desc = st[1]
+            except:
+                desc = name
+            tags.append( (name, desc) )
+        return tags
+
+    def get_title(self, txt):
+        return re.search(r'{{ begin_title }}(.+){{ end_title }}', txt).group(1)
+
+    def get_doc(self, filename):
+        return odf.load('{0}/{1}'.format(self.dir_printforms, filename))
+
+    def scan(self):
+        odt_files = []
+        files = os.listdir(self.dir_printforms)
+        for f in files:
+            if f.endswith('odt'): odt_files.append(f)
+
+        for odt in odt_files:
+            txt = self.get_doc(odt).toText()
+            tags = self.find_tags(txt)
+            title = self.get_title(txt)
+            yield (odt, title, tags)
 
 def main():
-    
     return 0
 
 if __name__ == "__main__":

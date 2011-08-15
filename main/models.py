@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-#
 
 from django.db import models
 
@@ -11,19 +10,21 @@ class Chain(models.Model):
 class Doc(models.Model):
     # All Documents with path to Print Forms (ODT)
     print_form = models.CharField(max_length = 1024)
+    title = models.CharField(max_length = 1024)
 
-class Doc_attr(models.Model): # All attributes (tags) for documents
-    name = models.CharField(max_length = 1024)
+class Doc_tag(models.Model): # All attributes (tags) for documents
+    name = models.CharField(max_length = 1024) # name in Doc
+    description = models.CharField(max_length = 1024) # description - for interface
 
 class Doc_data(models.Model): # Data 
     number = models.BigIntegerField() # Uniq number → Doc_number.id
     id_doc = models.BigIntegerField() # Doc ID → Doc.id
-    id_attr = models.BigIntegerField() # Attr ID → Doc_attr.id
-    attr_value = models.TextField() # Data :3
+    id_tag = models.BigIntegerField() # Attr ID → Doc_tag.id
+    tag_value = models.TextField() # Data :3
 
 class Doc_link(models.Model): # Attr ←→ Doc depends
     id_doc = models.BigIntegerField() # Doc.id
-    id_attr = models.BigIntegerField() # Doc_attr.id
+    id_tag = models.BigIntegerField() # Doc_tag.id
 
 class Doc_number(models.Model): # Real documents of system
     held_status = models.BooleanField() # Status of held
