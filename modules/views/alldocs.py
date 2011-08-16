@@ -8,20 +8,21 @@
 # Description:
 # TODO:
 
-from django.http import HttpResponse, Http404
+from django.http import Http404
 from django.shortcuts import render_to_response
-import openchain.config
 from openchain.modules import auth_support
-from openchain.modules import database
+from openchain.modules.database import Data
 
 def main(request):
     auth_this = auth_support.auth_user(request)
     if not auth_this: raise Http404
 
-    data = {
-        'docs': database.get_doc().all()
+    data = Data()
+
+    r_data = {
+        'docs': data.doc.all()
     }
 
-    return render_to_response('alldocs.html', data)
+    return render_to_response('alldocs.html', r_data)
 
 # vi: ts=4

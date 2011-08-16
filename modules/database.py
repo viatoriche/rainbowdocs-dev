@@ -12,86 +12,71 @@ import datetime
 
 from openchain.main.models import Doc, Doc_tag, Doc_data, Doc_link, Chain, Doc_number
 
-### ADD DATA → ----------------------------------------------------- ← ADD DATA
+class Data():
+    def __init__(self):
+        self.chain = Chain.objects
+        self.doc = Doc.objects
+        self.link = Doc_link.objects
+        self.tag = Doc_tag.objects
+        self.data = Doc_data.objects
+        self.number = Doc_number.objects
 
-# Doc add
-def add_doc(print_form_value, title_value):
-    try:
-        Doc.objects.get(print_form = print_form_value)
-    except:
-        Doc.objects.create(print_form = print_form_value, title = title_value)
-    return Doc.objects.get(print_form = print_form_value).id
-
-# Doc_tag add
-def add_tag(tag_name, tag_desc):
-    try:
-        attr = Doc_tag.objects.get(name = tag_name)
-        attr.description = tag_desc
-    except:
-        Doc_tag.objects.create(name = tag_name, description = tag_desc)
-    return Doc_tag.objects.get(name = tag_name).id
-
-# Doc_link add
-def add_link(id_doc_value, id_tag_value):
-    try:
-        Doc_link.objects.get(id_doc = id_doc_value, id_tag = id_tag_value)
-    except:
-        Doc_link.objects.create(id_doc = id_doc_value, id_tag = id_tag_value)
-    return Doc_link.objects.get(id_doc = id_doc_value, id_tag = id_tag_value).id
-
-# Chain add
-def add_chain(id_main_doc_value, id_slave_doc_value):
-    try:
-        Chain.objects.get(id_main_doc = id_main_doc_value, id_slave_doc = id_slave_doc_value)
-    except:
-        Chain.objects.create(id_main_doc = id_main_doc_value, id_slave_doc = id_slave_doc_value)
-    return Chain.objects.get(id_main_doc = id_main_doc_value, id_slave_doc = id_slave_doc_value).id
-
-# Doc_number add
-def add_doc_number(main_number_value = 0):
-    return Doc_number.objects.create(held_status = False, 
-                              date_create = datetime.datetime.now(), 
-                              date_change = datetime.datetime.now(),
-                              main_number = main_number_value).id
-
-def add_doc_data(number_value, id_doc_value, id_tag_value, tag_data):
-    try:
-        Doc_data.objects.get(number = number_value, id_doc = id_doc_value, id_tag = id_tag_value, tag_value = tag_data)
-        return False
-    except:
+    def add_doc(self, print_form, title):
         try:
-            Doc_number.objects.get(id = number_value)
-            Doc_link.objects.get(id_doc = id_doc_value, id_tag = id_tag_value)
-            Doc_data.objects.create(number = number_value, id_doc = id_doc_value, id_tag = id_tag_value, tag_value = tag_data)
-            return True
+            self.doc.get(print_form = print_form)
         except:
+            self.doc.create(print_form = print_form, title = title)
+        return self.doc.get(print_form = print_form).id
+
+    # Doc_tag add
+    def add_tag(self, name, description):
+        try:
+            tag = self.tag.get(name = name)
+            tag.description = description
+            tag.save()
+        except:
+            self.tag.create(name = name, description = description)
+        return self.tag.get(name = name).id
+
+    # Doc_link add
+    def add_link(self, id_doc, id_tag):
+        try:
+            self.link.get(id_doc = id_doc, id_tag = id_tag)
+        except:
+            self.link.create(id_doc = id_doc, id_tag = id_tag)
+        return self.link.get(id_doc = id_doc, id_tag = id_tag).id
+
+    # Chain add
+    def add_chain(self, id_main_doc, id_slave_doc):
+        try:
+            self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
+        except:
+            self.chain.create(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
+        return self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc).id
+
+    # Doc_number add
+    def add_number(self, main_number = 0):
+        return self.number.create(held_status = False, 
+                                  date_create = datetime.datetime.now(), 
+                                  date_change = datetime.datetime.now(),
+                                  main_number = main_number).id
+
+    # Doc_data add
+    def add_data(self, number, id_doc, id_tag, tag_value):
+        try:
+            self.data.get(number = number, id_doc = id_doc, 
+                                 id_tag = id_tag, tag_value = tag_value)
             return False
+        except:
+            try:
+                self.number.get(id = number)
+                self.link.get(id_doc = id_doc, id_tag = id_tag)
+                self.data.create(number = number, id_doc = id_doc, 
+                                        id_tag = id_tag, tag_value = tag_value)
+                return True
+            except:
+                return False
 
-### ADD DATA ←
 
-### CHANGE DATA → ------------------------------ ← CHANGE DATA
 
-### CHANGE DATA ←
-
-### GET OBJECTS → --------------------------------- ← GET OBJECTS
-
-def get_chain():
-    return Chain.objects
-
-def get_doc():
-    return Doc.objects
-
-def get_link():
-    return Doc_link.objects
-
-def get_tag():
-    return Doc_tag.objects
-
-def get_data():
-    return Doc_data.objects
-
-def get_number():
-    return Doc_number.objects
-
-### GET OBJECTS ←
 # vi: ts=4
