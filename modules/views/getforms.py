@@ -10,15 +10,15 @@
 
 from django.http import Http404
 from django.shortcuts import render_to_response
-from openchain.modules import auth_support, parse_docs, support
+from openchain.modules import parse_docs, support
 from openchain.modules.database import Data
 from openchain import settings
 
 def main(request):
-    auth_this = auth_support.auth_user(request)
-    if not auth_this: raise Http404
+    data = support.default_answer_data(request)
+    if not data['auth']: raise Http404
 
-    data = Data()
+    db = Data()
 
     p = parse_docs.Parser(settings.PRINT_FORMS_DIR)
     scanned = []
@@ -26,17 +26,16 @@ def main(request):
         scanned.append(pf)
         path_pf = pf[0]
         title_pf = pf[1]
-        id_doc = data.add_doc(path_pf, title_pf)
+        id_doc = db.add_doc(path_pf, title_pf)
         for tag in pf[2]:
             tag_name = tag[0]
             tag_desc = tag[1]
-            id_tag = data.add_tag(tag_name, tag_desc)
-            data.add_link(id_doc, id_tag)
+            id_tag = db.add_tag(tag_name, tag_desc)
+            db.add_link(id_doc, id_tag)
 
-    r_data = support.default_answer_data(request, auth_this)
-    r_data['scanned'] = scanned
-    r_data['content'] = 'getforms.html'
+    data['scanned'] = scanned
+    data['content'] = 'getforms.html'
 
-    return render_to_response('index.html', r_data)
+    return render_to_response('index.html', data)
 
 # vi: ts=4

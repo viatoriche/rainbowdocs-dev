@@ -42,7 +42,7 @@ class WebTest(TestCase):
 
         response = self.client.get('/getforms/')
         self.assertEqual(response.status_code, 200)
-        print response.content
+        #print response.content
 
         # logout
         response = self.client.post('', {'logout': 'logout'} )
@@ -69,6 +69,7 @@ class ParseDocTest(TestCase):
         id_doc = data.add_doc('jopa.odt', 'JOPA1')
         id_doc = data.add_doc('jopa.odt', 'JOPA')
         self.assertEqual(id_doc, 1)
+        self.assertEqual(data.doc.get(id = id_doc).title, 'JOPA')
 
         id_doc2 = data.add_doc('jopa2.odt', 'JOPA2')
         self.assertEqual(id_doc2, 2)
@@ -114,7 +115,5 @@ class ParseDocTest(TestCase):
 
         res_add = data.add_data(2, 3, 1, 'gggg')
         self.assertEqual(res_add, False)
-
-        self.assertEqual(data.doc.all()[0].title, 'JOPA1')
 
 # vi: ts=4

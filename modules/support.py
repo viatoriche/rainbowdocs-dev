@@ -10,11 +10,12 @@
 
 from django.contrib import auth
 import openchain.config
+from openchain.modules import auth_support
 
-def default_answer_data(request, auth_this):
+def default_answer_data(request):
     return {
         'username': auth.get_user(request),
-        'auth': auth_this,
+        'auth': auth_support.auth_user(request),
         'req_url': request.path,
         'Title': openchain.config.Title,
         }

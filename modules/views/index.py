@@ -9,11 +9,10 @@
 # TODO:
 
 from django.shortcuts import render_to_response
-from openchain.modules import auth_support, support
+from openchain.modules import support
 
 def main(request):
-    auth_this = auth_support.auth_user(request)
-    data = support.default_answer_data(request, auth_this)
+    data = support.default_answer_data(request)
     data['content'] = 'home.html'
 
     return render_to_response('index.html', data)

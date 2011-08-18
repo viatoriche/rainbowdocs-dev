@@ -23,7 +23,9 @@ class Data():
 
     def add_doc(self, print_form, title):
         try:
-            self.doc.get(print_form = print_form)
+            doc = self.doc.get(print_form = print_form)
+            doc.title = title
+            doc.save()
         except:
             self.doc.create(print_form = print_form, title = title)
         return self.doc.get(print_form = print_form).id
