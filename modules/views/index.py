@@ -8,21 +8,13 @@
 # Description:
 # TODO:
 
-from django.contrib import auth
-#from django.http import HttpResponse, Http404
 from django.shortcuts import render_to_response
-import openchain.config
-from openchain.modules import auth_support
+from openchain.modules import auth_support, support
 
 def main(request):
     auth_this = auth_support.auth_user(request)
-    data = {
-        'username': auth.get_user(request),
-        'req_url': request.path,
-        'auth': auth_this,
-        'content': 'home.html',
-        'Title': openchain.config.Title,
-    }
+    data = support.default_answer_data(request, auth_this)
+    data['content'] = 'home.html'
 
     return render_to_response('index.html', data)
 

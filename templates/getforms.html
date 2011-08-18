@@ -1,0 +1,10 @@
+<b>All documents: </b><br>
+{% for pf in scanned %}
+Title: {{ pf.1 }}<br>
+File: {{ pf.0 }}<br>
+Tags:<br>
+{% for tag in pf.2 %}
+Name: {{ tag.0 }}<br>
+Description: {{ tag.1 }}<br>
+{% endfor %}
+{% endfor %}

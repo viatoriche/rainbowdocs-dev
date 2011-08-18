@@ -8,14 +8,13 @@
 # Description:
 # TODO:
 
-from openchain import settings
 from openchain.modules.odftools import odf
 import os
 import re
 
 class Parser():
-    def __init__(self):
-        self.dir_printforms = settings.PRINT_FORMS_DIR
+    def __init__(self, dir_printforms):
+        self.dir_printforms = dir_printforms
 
     def find_tags(self, txt): # find {% tagname|description %}
         tags = []

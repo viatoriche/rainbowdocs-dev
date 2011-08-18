@@ -13,6 +13,7 @@ from django.test.client import Client
 from django.contrib import auth
 from modules import parse_docs
 from modules.database import Data
+from openchain import settings
 
 
 class WebTest(TestCase):
@@ -39,6 +40,10 @@ class WebTest(TestCase):
         self.assertContains(response, '<div id="2">JOPA1</div>')
         self.assertContains(response, '<div id="3">JOPA2</div>')
 
+        response = self.client.get('/getforms/')
+        self.assertEqual(response.status_code, 200)
+        print response.content
+
         # logout
         response = self.client.post('', {'logout': 'logout'} )
         self.assertContains(response, 'Auth')
@@ -49,9 +54,17 @@ class WebTest(TestCase):
 class ParseDocTest(TestCase):
     def testParse_database(self):
         data = Data()
-        p = parse_docs.Parser()
-        for i in p.scan():
-            pass
+        p = parse_docs.Parser(settings.PRINT_FORMS_DIR)
+        print 'All print forms:'
+        scanned = p.scan()
+        for pf in scanned:
+            path_pf = pf[0]
+            title_pf = pf[1]
+            print u'Path: {0} / Title: {1}\nTags:'.format(path_pf, title_pf)
+            for tag in pf[2]:
+                tag_name = tag[0]
+                tag_desc = tag[1]
+                print u'Name: {0} / Description: {1}'.format(tag_name, tag_desc)
 
         id_doc = data.add_doc('jopa.odt', 'JOPA1')
         id_doc = data.add_doc('jopa.odt', 'JOPA')
