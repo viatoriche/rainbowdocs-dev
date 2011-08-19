@@ -21,6 +21,7 @@ class Data():
         self.data = Doc_data.objects
         self.number = Doc_number.objects
 
+    # Add Doc
     def add_doc(self, print_form, title):
         try:
             doc = self.doc.get(print_form = print_form)
@@ -29,6 +30,13 @@ class Data():
         except:
             self.doc.create(print_form = print_form, title = title)
         return self.doc.get(print_form = print_form).id
+
+    def check_doc(self, id):
+        try:
+            self.doc.get(id = id)
+            return True
+        except:
+            return False
 
     # Doc_tag add
     def add_tag(self, name, description):
@@ -45,7 +53,10 @@ class Data():
         try:
             self.link.get(id_doc = id_doc, id_tag = id_tag)
         except:
-            self.link.create(id_doc = id_doc, id_tag = id_tag)
+            if self.check_doc(id_doc):
+                self.link.create(id_doc = id_doc, id_tag = id_tag)
+            else:
+                return -1
         return self.link.get(id_doc = id_doc, id_tag = id_tag).id
 
     # Chain add
@@ -53,8 +64,22 @@ class Data():
         try:
             self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
         except:
-            self.chain.create(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
+            if self.check_doc(id = id_main_doc) == True and self.check_doc(id = id_slave_doc) == True:
+                self.chain.create(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
+            else:
+                return -1
         return self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc).id
+
+    # Chain check add
+    def check_add_chain(self, id_main_doc, id_slave_doc):
+        if self.check_doc(id = id_main_doc) == True and self.check_doc(id = id_slave_doc) == True:
+            try:
+                self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
+                return False
+            except:
+                return True
+        else:
+            return False
 
     # Doc_number add
     def add_number(self, main_number = 0):

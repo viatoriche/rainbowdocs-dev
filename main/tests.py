@@ -34,21 +34,36 @@ class WebTest(TestCase):
         data.add_doc('jopa1.odt', 'JOPA1')
         data.add_doc('jopa2.odt', 'JOPA2')
 
-        response = self.client.get('/alldocs/')
+        response = self.client.get('/documents/all/')
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<div id="1">JOPA0</div>')
         self.assertContains(response, '<div id="2">JOPA1</div>')
         self.assertContains(response, '<div id="3">JOPA2</div>')
 
-        response = self.client.get('/getforms/')
+        response = self.client.get('/documents/parse/')
         self.assertEqual(response.status_code, 200)
         #print response.content
+
+        response = self.client.get('/chains/addcheck/1/1/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'True')
+
+        data.add_chain(1, 1)
+
+        response = self.client.get('/chains/addcheck/1/1/')
+        self.assertContains(response, 'False')
+
+        response = self.client.get('/chains/addcheck/')
+        self.assertEqual(response.status_code, 404)
+
+        response = self.client.get('/chains/addcheck/1/')
+        self.assertEqual(response.status_code, 404)
 
         # logout
         response = self.client.post('', {'logout': 'logout'} )
         self.assertContains(response, 'Auth')
 
-        response = self.client.get('/alldocs/')
+        response = self.client.get('/documents/all/')
         self.assertEqual(response.status_code, 404)
 
 class ParseDocTest(TestCase):
