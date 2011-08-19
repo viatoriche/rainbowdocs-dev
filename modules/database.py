@@ -91,18 +91,18 @@ class Data():
     # Doc_data add
     def add_data(self, number, id_doc, id_tag, tag_value):
         try:
-            self.data.get(number = number, id_doc = id_doc, 
+            id = self.data.get(number = number, id_doc = id_doc, 
                                  id_tag = id_tag, tag_value = tag_value)
-            return False
+            return (False, id)
         except:
             try:
                 self.number.get(id = number)
                 self.link.get(id_doc = id_doc, id_tag = id_tag)
-                self.data.create(number = number, id_doc = id_doc, 
+                id = self.data.create(number = number, id_doc = id_doc, 
                                         id_tag = id_tag, tag_value = tag_value)
-                return True
+                return (True, id)
             except:
-                return False
+                return (False, 0)
 
 
 

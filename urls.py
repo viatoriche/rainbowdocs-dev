@@ -10,7 +10,8 @@ urlpatterns = patterns('',
     url(r'^$', index.main),
     url(r'^documents/all/$', documents.all),
     url(r'^documents/parse/$', documents.parse),
-    url(r'^documents/new/(\d)/$', documents.new),
+    url(r'^documents/new/(\d)/$', documents.new), # id_doc, number of master or 0
+    url(r'^documents/new/(\d)/(\d)/$', documents.new), # id_doc, number of master or 0
     url(r'^chains/addcheck/(\d)/(\d)/$', chains.addcheck),
 
     # Uncomment the admin/doc line below to enable admin documentation:

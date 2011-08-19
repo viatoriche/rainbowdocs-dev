@@ -59,6 +59,20 @@ class WebTest(TestCase):
         response = self.client.get('/chains/addcheck/1/')
         self.assertEqual(response.status_code, 404)
 
+        t1 = data.add_tag('tag1', 'tag1')
+        t2 = data.add_tag('tag2', 'tag2')
+        t3 = data.add_tag('tag3', 'tag3')
+
+        data.add_link(1, t3)
+        data.add_link(1, t2)
+        data.add_link(1, t1)
+
+        response = self.client.get('/documents/new/1/')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.post('/documents/new/1/', {t1: 'nya1', t2: 'nya2', t3: 'nya3'})
+        self.assertEqual(response.status_code, 200)
+
         # logout
         response = self.client.post('', {'logout': 'logout'} )
         self.assertContains(response, 'Auth')
@@ -123,12 +137,12 @@ class ParseDocTest(TestCase):
         self.assertEqual(id_num, 2)
 
         res_add = data.add_data(1, 1, 1, 'gggg')
-        self.assertEqual(res_add, True)
+        self.assertEqual(res_add[0], True)
 
         res_add = data.add_data(3, 1, 1, 'gggg')
-        self.assertEqual(res_add, False)
+        self.assertEqual(res_add[0], False)
 
         res_add = data.add_data(2, 3, 1, 'gggg')
-        self.assertEqual(res_add, False)
+        self.assertEqual(res_add[0], False)
 
 # vi: ts=4

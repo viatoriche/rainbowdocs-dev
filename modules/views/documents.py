@@ -50,29 +50,50 @@ def all(request):
 
     return render_to_response('documents/all.html', data)
 
-def new(request, id_doc = 0):
+def new(request, id_doc = 0, id_num = 0):
     if id_doc == 0: raise Http404
     data = support.default_answer_data(request)
     if not data['auth']: raise Http404
 
     db = Data()
-
     if not db.check_doc(id_doc): raise Http404
 
-    doc = db.doc.get(id = id_doc)
-    data['Title'] = doc.title
-    cur_tags = db.link.get(id_doc = id_doc)
-    tags = []
-    for tag in cur_tags:
-        tags.append(
-                       (
-                           tag.id_tag, # 0
-                           db.tag.get(id = tag.id_tag).description # 1
+    if request.method == 'POST':
+        try:
+            num = db.add_number(id_num)
+            for tag in request.POST:
+                db.add_data(number = num, id_doc = id_doc, id_tag = tag, tag_value = request.POST[tag])
+
+            all_data = db.data.filter(number = num)
+            data['Title_Doc'] = db.doc.get(id = id_doc).title
+            showthis = []
+            for d in all_data:
+                showthis.append('{0}: {1}'.format(db.tag.get(id = d.id_tag).description, d.tag_value))
+            data['showthis'] = showthis
+            data['content'] = 'documents/show.html'
+
+            return render_to_response('index.html', data)
+        except:
+            raise Http404
+
+    try:
+        doc = db.doc.get(id = id_doc)
+        data['Title_Doc'] = doc.title
+        cur_tags = db.link.filter(id_doc = id_doc)
+        tags = []
+        for tag in cur_tags:
+            tags.append(
+                           (
+                               tag.id_tag, # 0
+                               db.tag.get(id = tag.id_tag).description # 1
+                           )
                        )
-                   )
 
-    data['tags'] = tags
+        data['tags'] = tags
+        data['content'] = 'documents/new.html'
 
-    return render_to_response()
+        return render_to_response('index.html', data)
+    except:
+        raise Http404
 
 # vi: ts=4
