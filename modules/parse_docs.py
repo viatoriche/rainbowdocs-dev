@@ -46,7 +46,6 @@ class Parser():
             doc.replace(r'{{\s*number\s*}}', number)
             doc.replace(r'{{\s*date\s*}}', date)
             doc.replace(r'{{\s*date_held\s*}}', date_held)
-            print doc.toText()
             for tag in tags:
                 tagname = u'{0}'.format(tag.strip())
                 doc.replace(r'{%\s*'+tagname+r'\s*%}', tags[tag])
