@@ -10,9 +10,9 @@
 
 from django.http import Http404
 from django.shortcuts import render_to_response, redirect
-from openchain.modules import support, auth_support, parse_docs
-from openchain.modules.database import Data
-from openchain import settings
+from modules import support, auth_support, parse_docs
+from modules.database import Data
+import settings
 
 def odt(request, num = '0'):
     data = support.default_answer_data(request)

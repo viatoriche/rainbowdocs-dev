@@ -9,7 +9,7 @@
 # TODO:
 
 from django.shortcuts import render_to_response
-from openchain.modules import support
+from modules import support
 
 def main(request):
     data = support.default_answer_data(request)

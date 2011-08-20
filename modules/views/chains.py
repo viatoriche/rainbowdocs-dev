@@ -10,8 +10,8 @@
 
 from django.http import Http404
 from django.shortcuts import render_to_response
-from openchain.modules import auth_support, support
-from openchain.modules.database import Data
+from modules import auth_support, support
+from modules.database import Data
 
 def need(request):
     data = support.default_answer_data(request)

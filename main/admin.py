@@ -9,7 +9,7 @@
 # TODO:
 
 from django.contrib import admin
-from openchain.main.models import Chain, Doc, Doc_tag, Doc_data, Doc_link, Doc_number
+from main.models import Chain, Doc, Doc_tag, Doc_data, Doc_link, Doc_number
 
 admin.site.register(Chain)
 admin.site.register(Doc)

@@ -1,8 +1,9 @@
 from django.conf.urls.defaults import patterns, include, url
 
-from openchain.modules.views import index, chains, documents
+from modules.views import index, chains, documents
 # Uncomment the next two lines to enable the admin:
 from django.contrib import admin
+
 admin.autodiscover()
 
 urlpatterns = patterns('',

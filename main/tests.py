@@ -13,7 +13,7 @@ from django.test.client import Client
 from django.contrib import auth
 from modules import parse_docs
 from modules.database import Data
-from openchain import settings
+import settings
 
 
 class WebTest(TestCase):

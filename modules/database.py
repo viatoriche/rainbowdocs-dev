@@ -10,7 +10,7 @@
 
 import datetime
 
-from openchain.main.models import Doc, Doc_tag, Doc_data, Doc_link, Chain, Doc_number
+from main.models import Doc, Doc_tag, Doc_data, Doc_link, Chain, Doc_number
 
 class Data():
     def __init__(self):

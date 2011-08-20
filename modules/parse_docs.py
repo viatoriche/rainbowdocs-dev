@@ -8,7 +8,7 @@
 # Description:
 # TODO:
 
-from openchain.modules.odftools import odf
+from modules.odftools import odf
 import os
 import re
 
