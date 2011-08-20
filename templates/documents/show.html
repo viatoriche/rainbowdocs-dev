@@ -1,3 +1,8 @@
 <b>Title: {{ Title_Doc }}</b><br>
 <b>Number: {{ Number }}</b><br>
+<b>Date: {{ Date }}</b><br>
+{% if held_status %}<b>Helded: {{ Date_Held }}</b><br>
+{% else %}<a href="/documents/held/{{ Number }}/">Held</a><br>{% endif %}
 {% for s in showthis %}{{ s }}<br>{% endfor %}
+{% if not held_status %}<a href="/documents/edit/{{ Number }}/">Edit</a><br>{% endif %}
+<a href="/documents/odt/{{ Number }}/">Download odt</a><br>

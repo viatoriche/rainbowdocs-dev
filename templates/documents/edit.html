@@ -1,0 +1,8 @@
+<b>Number: {{ Number }}</b><br>
+<b>Document: {{ Title_Doc }}</b><br>
+<b>Date: {{ Date }}</b><br>
+Change data:<br>
+<form action='{{ req_url }}' method="post" >
+    {% for tag in showthis %}{{ tag.1 }}: <input type="text" name="{{ tag.0 }}" value="{{ tag.2 }}"><br>{% endfor %}<br>
+    <input type="submit" value="Change">
+</form>

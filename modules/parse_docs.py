@@ -31,8 +31,27 @@ class Parser():
     def get_title(self, txt):
         return re.search(r'{{ begin_title }}(.+){{ end_title }}', txt).group(1)
 
+    def get_main(self, txt):
+        if txt.find('{{ main }}') == -1: return False
+        else: return True
+
     def get_doc(self, filename):
         return odf.load('{0}/{1}'.format(self.dir_printforms, filename))
+
+    def create_form(self, printform, dest, number, date, date_held, tags):
+            doc = self.get_doc(printform)
+            doc.replace(r'{{\s*main\s*}}', '')
+            doc.replace(r'{{\s*begin_title\s*}}', '')
+            doc.replace(r'{{\s*end_title\s*}}', '')
+            doc.replace(r'{{\s*number\s*}}', number)
+            doc.replace(r'{{\s*date\s*}}', date)
+            doc.replace(r'{{\s*date_held\s*}}', date_held)
+            print doc.toText()
+            for tag in tags:
+                tagname = u'{0}'.format(tag.strip())
+                doc.replace(r'{%\s*'+tagname+r'\s*%}', tags[tag])
+            odf.dump(doc, dest)
+            return True
 
     def scan(self):
         odt_files = []
@@ -44,12 +63,7 @@ class Parser():
             txt = self.get_doc(odt).toText()
             tags = self.find_tags(txt)
             title = self.get_title(txt)
-            yield (odt, title, tags)
-
-def main():
-    return 0
-
-if __name__ == "__main__":
-    main()
+            main = self.get_main(txt)
+            yield (odt, title, tags, main)
 
 # vi: ts=4

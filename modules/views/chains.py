@@ -10,8 +10,20 @@
 
 from django.http import Http404
 from django.shortcuts import render_to_response
-from openchain.modules import auth_support
+from openchain.modules import auth_support, support
 from openchain.modules.database import Data
+
+def need(request):
+    data = support.default_answer_data(request)
+    if not data['auth']: raise Http404
+
+    db = Data()
+
+    data['content'] = 'chains/need.html'
+    data['need_docs'] = db.get_all_need_slave()
+
+    return render_to_response('index.html', data)
+
 
 def addcheck(request, id_main = 0, id_slave = 0):
     auth_this = auth_support.auth_user(request)

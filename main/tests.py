@@ -67,11 +67,19 @@ class WebTest(TestCase):
         data.add_link(1, t2)
         data.add_link(1, t1)
 
+        response = self.client.get('/documents/new/')
+        self.assertEqual(response.status_code, 200)
+        print response.content
+
+        response = self.client.post('/documents/new/', {'id_doc': '1'})
+        self.assertEqual(response.status_code, 302)
+        print response.content
+
         response = self.client.get('/documents/new/1/')
         self.assertEqual(response.status_code, 200)
 
         response = self.client.post('/documents/new/1/', {t1: 'nya1', t2: 'nya2', t3: 'nya3'})
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
 
         # logout
         response = self.client.post('', {'logout': 'logout'} )

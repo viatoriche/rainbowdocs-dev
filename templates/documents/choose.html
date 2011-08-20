@@ -1,0 +1,7 @@
+<form action="{{ req_url }}" method="post">
+    <p><b>Choose document:</b><br><select size="20" required name="id_doc">
+    {% for doc in docs %}<option value="{{ doc.id }}">{{ doc.title }}</option>
+    {% endfor %}
+   </select></p>
+   <p><input type="submit" value="Create"></p>
+</form>
