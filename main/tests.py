@@ -104,12 +104,19 @@ class WebTest(TestCase):
         self.assertContains(response, '<a href="/documents/new/1/1/">JOPA0 → JOPA0</a><br>')
         self.assertContains(response, '<a href="/documents/new/2/1/">JOPA0 → JOPA1</a><br>')
 
+        response = self.client.get('/chains/add/')
+        self.assertContains(response, '<input type="text" name="chains" value="1-1 1-2 ">')
+
+        response = self.client.post('/chains/add/', {'chains': '2-1'})
+        response = self.client.get('/chains/add/')
+        self.assertContains(response, '<input type="text" name="chains" value="1-1 1-2 2-1 ">')
+
         # logout
         response = self.client.post('', {'logout': 'logout'} )
         self.assertContains(response, 'Auth')
 
         response = self.client.get('/documents/all/')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 302)
 
 class DBTest(TestCase):
     def testBasic(self):
