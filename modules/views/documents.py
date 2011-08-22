@@ -16,7 +16,7 @@ import settings
 
 def odt(request, num = '0'):
     data = support.default_answer_data(request)
-    if not data['auth']: raise Http404
+    if not data['auth']: return support.auth_error()
 
     if num == '0': raise Http404
 
@@ -52,11 +52,9 @@ def odt(request, num = '0'):
     else:
         raise Http404
 
-
-
 def parse(request):
     data = support.default_answer_data(request)
-    if not data['auth']: raise Http404
+    if not data['auth']: return support.auth_error()
 
     db = Data()
 
@@ -81,7 +79,7 @@ def parse(request):
 
 def all(request):
     auth_this = auth_support.auth_user(request)
-    if not auth_this: raise Http404
+    if not auth_this: return support.auth_error()
 
     db = Data()
 
@@ -93,7 +91,7 @@ def all(request):
 
 def held(request, num = '0'):
     data = support.default_answer_data(request)
-    if not data['auth']: raise Http404
+    if not data['auth']: return support.auth_error()
 
     if num == '0': raise Http404
 
@@ -104,8 +102,7 @@ def held(request, num = '0'):
 
 def edit(request, num = '0'):
     data = support.default_answer_data(request)
-    if not data['auth']: raise Http404
-
+    if not data['auth']: return support.auth_error()
     if num == '0': return redirect('/documents/edit/')
 
     db = Data()
@@ -134,8 +131,7 @@ def edit(request, num = '0'):
 
 def show(request, num = '0'):
     data = support.default_answer_data(request)
-    if not data['auth']: raise Http404
-
+    if not data['auth']: return support.auth_error()
     db = Data()
 
     if num == '0':
@@ -183,7 +179,7 @@ def show(request, num = '0'):
 
 def new(request, id_doc = '0', id_num = '0'):
     data = support.default_answer_data(request)
-    if not data['auth']: raise Http404
+    if not data['auth']: return support.auth_error()
 
     db = Data()
 

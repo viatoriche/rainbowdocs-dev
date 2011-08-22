@@ -30,9 +30,9 @@ class WebTest(TestCase):
         self.assertEqual(login, True)
         self.assertContains(response, 'logout')
 
-        data.add_doc('jopa0.odt', 'JOPA0')
-        data.add_doc('jopa1.odt', 'JOPA1')
-        data.add_doc('jopa2.odt', 'JOPA2')
+        data.add_doc('jopa0.odt', 'JOPA0', True)
+        data.add_doc('jopa1.odt', 'JOPA1', True)
+        data.add_doc('jopa2.odt', 'JOPA2', False)
 
         response = self.client.get('/documents/all/')
         self.assertEqual(response.status_code, 200)
@@ -49,6 +49,7 @@ class WebTest(TestCase):
         self.assertContains(response, 'True')
 
         data.add_chain(1, 1)
+        data.add_chain(1, 2)
 
         response = self.client.get('/chains/addcheck/1/1/')
         self.assertContains(response, 'False')
@@ -69,17 +70,39 @@ class WebTest(TestCase):
 
         response = self.client.get('/documents/new/')
         self.assertEqual(response.status_code, 200)
-        print response.content
+        self.assertContains(response, '<option value="1">JOPA0</option>')
 
         response = self.client.post('/documents/new/', {'id_doc': '1'})
         self.assertEqual(response.status_code, 302)
-        print response.content
 
         response = self.client.get('/documents/new/1/')
         self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'tag3: <input type="text" name="4"><br>tag2: <input type="text" name="3"><br>tag1: <input type="text" name="2"><br><br>')
 
         response = self.client.post('/documents/new/1/', {t1: 'nya1', t2: 'nya2', t3: 'nya3'})
         self.assertEqual(response.status_code, 302)
+
+        response = self.client.get('/documents/show/1/')
+        self.assertContains(response, 'tag2: nya2<br>tag1: nya1<br>tag3: nya3<br>')
+
+        response = self.client.get('/documents/edit/1/')
+        self.assertContains(response, '<input type="submit" value="Change">')
+
+        response = self.client.post('/documents/edit/1/', {t1: 'nya1_e', t2: 'nya2_e', t3: 'nya3_e'})
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.get('/documents/show/1/')
+        self.assertContains(response, 'tag2: nya2_e<br>tag1: nya1_e<br>tag3: nya3_e<br>')
+
+        response = self.client.get('/documents/held/1/')
+        self.assertEqual(response.status_code, 302)
+
+        response = self.client.get('/documents/show/1/')
+        self.assertContains(response, '<b>Helded:')
+
+        response = self.client.get('/chains/need/')
+        self.assertContains(response, '<a href="/documents/new/1/1/">JOPA0 → JOPA0</a><br>')
+        self.assertContains(response, '<a href="/documents/new/2/1/">JOPA0 → JOPA1</a><br>')
 
         # logout
         response = self.client.post('', {'logout': 'logout'} )
@@ -88,8 +111,8 @@ class WebTest(TestCase):
         response = self.client.get('/documents/all/')
         self.assertEqual(response.status_code, 404)
 
-class ParseDocTest(TestCase):
-    def testParse_database(self):
+class DBTest(TestCase):
+    def testBasic(self):
         data = Data()
         p = parse_docs.Parser(settings.PRINT_FORMS_DIR)
         print 'All print forms:'
@@ -97,21 +120,23 @@ class ParseDocTest(TestCase):
         for pf in scanned:
             path_pf = pf[0]
             title_pf = pf[1]
-            print u'Path: {0} / Title: {1}\nTags:'.format(path_pf, title_pf)
+            main_pf = pf[3]
+            print u'Path: {0} / Title: {1} / Main: {2}\nTags:'.format(path_pf, title_pf, main_pf)
             for tag in pf[2]:
                 tag_name = tag[0]
                 tag_desc = tag[1]
                 print u'Name: {0} / Description: {1}'.format(tag_name, tag_desc)
+            print ''
 
-        id_doc = data.add_doc('jopa.odt', 'JOPA1')
-        id_doc = data.add_doc('jopa.odt', 'JOPA')
+        id_doc = data.add_doc('jopa.odt', 'JOPA1', True)
+        id_doc = data.add_doc('jopa.odt', 'JOPA', True)
         self.assertEqual(id_doc, 1)
         self.assertEqual(data.doc.get(id = id_doc).title, 'JOPA')
 
-        id_doc2 = data.add_doc('jopa2.odt', 'JOPA2')
+        id_doc2 = data.add_doc('jopa2.odt', 'JOPA2', False)
         self.assertEqual(id_doc2, 2)
 
-        id_doc3 = data.add_doc('jopa3.odt', 'JOPA3')
+        id_doc3 = data.add_doc('jopa3.odt', 'JOPA3', False)
         self.assertEqual(id_doc3, 3)
 
         id_tag = data.add_tag('FIO', 'Name and Surname')
@@ -152,5 +177,23 @@ class ParseDocTest(TestCase):
 
         res_add = data.add_data(2, 3, 1, 'gggg')
         self.assertEqual(res_add[0], False)
+
+        r = data.change_data(1, 1, 'lololo')[0]
+        self.assertEqual(r, True)
+
+        r = data.change_number(1, False)[0]
+        self.assertEqual(r, True)
+
+        r = data.change_number(1, True)[0]
+        self.assertEqual(r, True)
+
+        self.assertEqual(data.id_doc_from_number(1), 1)
+
+        docs = data.get_slave_docs(1, 1)
+        self.assertEqual(docs[0], '2')
+
+        slaves = data.get_all_need_slave()
+        self.assertEqual(slaves[0][0], '2')
+
 
 # vi: ts=4

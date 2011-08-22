@@ -9,18 +9,23 @@
 # TODO:
 
 from django.contrib import auth
+from django.shortcuts import redirect
 import config
 from modules import auth_support
 from modules.database import Data
 
 def default_answer_data(request):
     db = Data()
+    auth_this = auth_support.auth_user(request)
     return {
         'username': auth.get_user(request),
-        'auth': auth_support.auth_user(request),
+        'auth': auth_this,
         'req_url': request.path,
         'Title': config.Title,
         'Need': len(db.get_all_need_slave())
         }
+
+def auth_error():
+    return redirect('/')
 
 # vi: ts=4

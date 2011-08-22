@@ -1,0 +1,10 @@
+All documents (id == title)<br><br>
+{% for doc in docs %}
+{{ doc.id }} == {{ doc.title }}<br>
+{% endfor %}
+<form method="post" action="{{ req_url }}">
+    Chains: id_main-id_slave id_main-id_slave<br>
+    Example: 1-2 3-4 2-3<br>
+    <input type="text" name="chains" value="{% for chain in chains %}{{ chain.id_main_doc }}-{{ chain.id_slave_doc }} {% endfor %}">
+    <input type="submit" value="Save">
+</form>

@@ -147,7 +147,10 @@ class Data():
         created_slave_numbers = self.number.filter(main_number = main_number)
         created_slave_doc = []
         for created_slave_number in created_slave_numbers:
-            created_slave_doc.append(self.data.filter(number = created_slave_number.id)[0].id_doc)
+            try:
+                created_slave_doc.append(self.data.filter(number = created_slave_number.id)[0].id_doc)
+            except:
+                pass
 
         out = []
         for slave_doc in slave_docs:

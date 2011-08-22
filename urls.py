@@ -7,7 +7,6 @@ from django.contrib import admin
 admin.autodiscover()
 
 urlpatterns = patterns('',
-    # Examples:
     url(r'^$', index.main),
     url(r'^documents/all/$', documents.all),
     url(r'^documents/parse/$', documents.parse),
@@ -21,11 +20,9 @@ urlpatterns = patterns('',
     url(r'^documents/held/(\d)/$', documents.held), # id_doc, number of master == 0
     url(r'^documents/odt/(\d)/$', documents.odt), # id_doc, number of master == 0
     url(r'^chains/addcheck/(\d)/(\d)/$', chains.addcheck),
+    url(r'^chains/add/$', chains.add),
     url(r'^chains/need/$', chains.need),
 
-    # Uncomment the admin/doc line below to enable admin documentation:
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
-
-    # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
 )
