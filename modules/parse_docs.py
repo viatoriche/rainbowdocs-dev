@@ -18,39 +18,46 @@ class Parser():
 
     def find_tags(self, txt): # find {% tagname|description %}
         tags = []
-        for t in re.findall(r'{%\s+(.+)\s+%}', txt):
+        for t in re.findall(r'{%\s*(.+)\s*%}', txt):
             st = t.split('|')
-            name = st[0]
+            name = st[0].strip()
             try:
-                desc = st[1]
+                desc = st[1].strip()
             except:
                 desc = name
             tags.append( (name, desc) )
         return tags
 
     def get_title(self, txt):
-        return re.search(r'{{ begin_title }}(.+){{ end_title }}', txt).group(1)
+        try:
+            return re.search(r'{{\s*begin_title\s*}}(.+){{\s*end_title\s*}}', txt).group(1)
+        except:
+            return 'Unknown'
 
     def get_main(self, txt):
-        if txt.find('{{ main }}') == -1: return False
-        else: return True
+        try:
+            re.search(r'{{\s*main\s*}}', txt).group(0)
+            return True
+        except:
+            return False
 
     def get_doc(self, filename):
         return odf.load('{0}/{1}'.format(self.dir_printforms, filename))
 
     def create_form(self, printform, dest, number, date, date_held, tags):
-            doc = self.get_doc(printform)
-            doc.replace(r'{{\s*main\s*}}', '')
-            doc.replace(r'{{\s*begin_title\s*}}', '')
-            doc.replace(r'{{\s*end_title\s*}}', '')
-            doc.replace(r'{{\s*number\s*}}', number)
-            doc.replace(r'{{\s*date\s*}}', date)
-            doc.replace(r'{{\s*date_held\s*}}', date_held)
-            for tag in tags:
-                tagname = u'{0}'.format(tag.strip())
-                doc.replace(r'{%\s*'+tagname+r'\s*%}', tags[tag])
-            odf.dump(doc, dest)
-            return True
+        doc = self.get_doc(printform)
+        doc.replace(r'{{\s*main\s*}}', '')
+        doc.replace(r'{{\s*begin_title\s*}}', '')
+        doc.replace(r'{{\s*end_title\s*}}', '')
+        doc.replace(r'{{\s*number\s*}}', number)
+        doc.replace(r'{{\s*date\s*}}', date)
+        doc.replace(r'{{\s*date_held\s*}}', date_held)
+        for tag in tags:
+            tagname = u'{0}'.format(tag.strip())
+            doc.replace(r'{%\s*'+tagname+r'.+%}', tags[tag])
+        doc.replace(r'{%.*%}', '')
+        odf.dump(doc, dest)
+        return True
 
     def scan(self):
         odt_files = []

@@ -83,7 +83,9 @@ class WebTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
         response = self.client.get('/documents/show/1/')
-        self.assertContains(response, 'tag2: nya2<br>tag1: nya1<br>tag3: nya3<br>')
+        self.assertContains(response, 'nya1')
+        self.assertContains(response, 'nya2')
+        self.assertContains(response, 'nya3')
 
         response = self.client.get('/documents/edit/1/')
         self.assertContains(response, '<input type="submit" value="Change">')
@@ -92,7 +94,9 @@ class WebTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
         response = self.client.get('/documents/show/1/')
-        self.assertContains(response, 'tag2: nya2_e<br>tag1: nya1_e<br>tag3: nya3_e<br>')
+        self.assertContains(response, 'nya1_e')
+        self.assertContains(response, 'nya2_e')
+        self.assertContains(response, 'nya3_e')
 
         response = self.client.get('/documents/held/1/')
         self.assertEqual(response.status_code, 302)
@@ -164,26 +168,27 @@ class DBTest(TestCase):
         self.assertEqual((id_link2, id_link3), (2, 3))
 
         id_chain = data.add_chain(1, 2)
-        id_chain = data.add_chain(1, 2)
         self.assertEqual(id_chain, 1)
+        id_chain = data.add_chain(1, 2)
+        self.assertEqual(id_chain, -1)
 
         id_chain2 = data.add_chain(3, 1)
         self.assertEqual(id_chain2, 2)
 
-        id_num = data.add_number()
+        id_num = data.add_number(1)
         self.assertEqual(id_num, 1)
 
-        id_num = data.add_number(1)
+        id_num = data.add_number(1, 1)
         self.assertEqual(id_num, 2)
 
-        res_add = data.add_data(1, 1, 1, 'gggg')
+        res_add = data.add_data(1, 1, 'gggg')
         self.assertEqual(res_add[0], True)
 
-        res_add = data.add_data(3, 1, 1, 'gggg')
+        res_add = data.add_data(3, 1, 'gggg')
         self.assertEqual(res_add[0], False)
 
-        res_add = data.add_data(2, 3, 1, 'gggg')
-        self.assertEqual(res_add[0], False)
+        res_add = data.add_data(2, 1, 'gggg')
+        self.assertEqual(res_add[0], True)
 
         r = data.change_data(1, 1, 'lololo')[0]
         self.assertEqual(r, True)
@@ -201,6 +206,9 @@ class DBTest(TestCase):
 
         slaves = data.get_all_need_slave()
         self.assertEqual(slaves[0][0], '2')
+
+        numbers = data.numbers_from_id_doc(1)
+        self.assertEqual(numbers, ['1', '2'])
 
 
 # vi: ts=4

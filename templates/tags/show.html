@@ -1,0 +1,4 @@
+<br><b>All tags:</b><br>
+{% for o in out %}{% if o.3|length < 1 %}<form action="{{ req_url }}" method="post">{% endif %}Tag: <b>{{ o.1 }} / {{ o.2 }}</b>{% if o.3|length < 1 %}<input type="hidden" name="id_tag" value="{{ o.0 }}"><input type="submit" value="Delete"></form>{% else %}<br>{% endif %}Numbers of real docs with this tag:<br>
+{% for l in o.3 %}<a href="/documents/show/{{ l }}/">{{ l }}</a><br>{% endfor %}<br>
+{% endfor %}

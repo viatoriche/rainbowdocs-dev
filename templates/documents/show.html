@@ -3,6 +3,6 @@
 <b>Date: {{ Date }}</b><br>
 {% if held_status %}<b>Helded: {{ Date_Held }}</b><br>
 {% else %}<a href="/documents/held/{{ Number }}/">Held</a><br>{% endif %}
-{% for s in showthis %}{{ s }}<br>{% endfor %}
+{% for s in showthis %}{% if not held_status%}<form action="{{ req_url }}" method="post">{% endif %}{{ s.0 }}: {{ s.1}}{% if not held_status %}<input type="hidden" name="id_tag" value="{{ s.2 }}"><input type="submit" value="Delete"></form>{% else %}<br>{% endif %}{% endfor %}
 {% if not held_status %}<a href="/documents/edit/{{ Number }}/">Edit</a><br>{% endif %}
 <a href="/documents/odt/{{ Number }}/">Download odt</a><br>

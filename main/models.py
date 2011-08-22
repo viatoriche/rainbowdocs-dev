@@ -28,7 +28,6 @@ class Doc_tag(models.Model): # All attributes (tags) for documents
 
 class Doc_data(models.Model): # Data 
     number = models.BigIntegerField() # Uniq number → Doc_number.id
-    id_doc = models.BigIntegerField() # Doc ID → Doc.id
     id_tag = models.BigIntegerField() # Attr ID → Doc_tag.id
     tag_value = models.TextField() # Data :3
 
@@ -48,6 +47,7 @@ class Doc_number(models.Model): # Real documents of system
     date_create = models.DateTimeField() # Date of create
     date_change = models.DateTimeField() # Date of change
     main_number = models.BigIntegerField(null = True) # Main Doc Number (chain) Doc_number.id or NULL
+    id_doc = models.BigIntegerField() # Doc ID → Doc.id
 
     def __unicode__(self):
         return u'{0}: Held={1}'.format(self.id, self.held_status)

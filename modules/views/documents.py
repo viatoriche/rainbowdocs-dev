@@ -40,8 +40,7 @@ def odt(request, num = '0'):
     tags = {}
     doc_data = db.data.filter(number = num)
     for dt in doc_data:
-        tags[u'{0}\|{1}'.format(db.tag.get(id = dt.id_tag).name, 
-                               db.tag.get(id = dt.id_tag).description)] = dt.tag_value
+        tags[u'{0}'.format(db.tag.get(id = dt.id_tag).name)] = dt.tag_value
 
     if p.create_form(sourcefile, 
                     u'{0}{1}'.format(static_dir, destfile), 
@@ -61,16 +60,34 @@ def parse(request):
     p = parse_docs.Parser(settings.PRINT_FORMS_DIR)
     scanned = []
     for pf in p.scan():
-        scanned.append(pf)
         path_pf = pf[0]
         title_pf = pf[1]
         main_pf = pf[3]
         id_doc = db.add_doc(path_pf, title_pf, main_pf)
-        for tag in pf[2]:
+        doc_alltags = db.link.filter(id_doc = id_doc)
+        new_tags = pf[2]
+        tags = []
+        test_tags = []
+        for tag in new_tags:
             tag_name = tag[0]
+            test_tags.append(tag_name)
             tag_desc = tag[1]
+            try:
+                id_tag = db.tag.get(name = tag_name).id
+                db.link.get(id_doc = id_doc, id_tag = id_tag)
+            except:
+                tags.append(tag)
             id_tag = db.add_tag(tag_name, tag_desc)
             db.add_link(id_doc, id_tag)
+        delete_tags = []
+        for tag in doc_alltags:
+            t = db.tag.get(id = tag.id_tag)
+            name = t.name
+            desc = t.description
+            if name not in test_tags:
+                delete_tags.append( (name, desc) )
+
+        scanned.append( (path_pf, title_pf, tags, main_pf, delete_tags) )
 
     data['scanned'] = scanned
     data['content'] = 'documents/parse.html'
@@ -115,7 +132,7 @@ def edit(request, num = '0'):
 
 
     all_data = db.data.filter(number = num)
-    id_doc = all_data[0].id_doc
+    id_doc = db.number.get(id = num).id_doc
 
     data['Title_Doc'] = db.doc.get(id = id_doc).title
     data['Number'] = num
@@ -152,7 +169,7 @@ def show(request, num = '0'):
         for n in nums:
             # 0 - number, 1 - title, 2 - date_change, 3 - held, 4 - dateheld
             out.append((n.id, 
-                        db.doc.get(id = db.data.filter(number=n.id)[0].id_doc).title, 
+                        db.doc.get(id = db.id_doc_from_number(n.id)).title, 
                         n.date_change,
                         n.held_status,
                         n.date_held))
@@ -161,8 +178,15 @@ def show(request, num = '0'):
 
         return render_to_response('index.html', data)
 
+    if request.method == 'POST':
+        try:
+            id_tag = request.POST['id_tag']
+            db.del_tag_from_datadoc(num, id_tag)
+        except:
+            pass
+
     all_data = db.data.filter(number = num)
-    id_doc = all_data[0].id_doc
+    id_doc = db.id_doc_from_number(num)
 
     data['Title_Doc'] = db.doc.get(id = id_doc).title
     data['Number'] = num
@@ -171,7 +195,10 @@ def show(request, num = '0'):
     data['Date_Held'] = db.number.get(id = num).date_held
     showthis = []
     for d in all_data:
-        showthis.append(u'{0}: {1}'.format(db.tag.get(id = d.id_tag).description, d.tag_value))
+        showthis.append( (db.tag.get(id = d.id_tag).description, 
+                          d.tag_value,
+                          d.id_tag) 
+                       )
     data['showthis'] = showthis
     data['content'] = 'documents/show.html'
 
@@ -203,9 +230,11 @@ def new(request, id_doc = '0', id_num = '0'):
     if request.method == 'POST':
         if id_num == '0':
             if db.doc.get(id = id_doc).main:
-                num = db.add_number(id_num)
+                num = db.add_number(id_doc)
                 for tag in request.POST:
-                    db.add_data(number = num, id_doc = id_doc, id_tag = tag, tag_value = request.POST[tag])
+                    db.add_data(number = num, 
+                                id_tag = tag, 
+                                tag_value = request.POST[tag])
 
                 return redirect('/documents/show/{0}/'.format(num))
             else:
@@ -216,9 +245,9 @@ def new(request, id_doc = '0', id_num = '0'):
  
             slaves = db.get_slave_docs(id_main_doc, id_num)
             if id_doc in slaves:
-                num = db.add_number(id_num)
+                num = db.add_number(id_doc, id_num)
                 for tag in request.POST:
-                    db.add_data(number = num, id_doc = id_doc, id_tag = tag, tag_value = request.POST[tag])
+                    db.add_data(number = num, id_tag = tag, tag_value = request.POST[tag])
 
                 return redirect('/documents/show/{0}/'.format(num))
             else:

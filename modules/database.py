@@ -32,6 +32,9 @@ class Data():
             self.doc.create(print_form = print_form, title = title, main = main)
         return self.doc.get(print_form = print_form).id
 
+    def del_doc(self, id):
+        pass
+
     def check_doc(self, id):
         try:
             self.doc.get(id = id)
@@ -60,10 +63,27 @@ class Data():
                 return -1
         return self.link.get(id_doc = id_doc, id_tag = id_tag).id
 
+    def del_link(self, id_link):
+        try:
+            self.link.get(id = id_link).delete()
+        except:
+            pass
+
+    def del_tag(self, id_tag):
+        numbers = self.numbers_from_tag(id_tag)
+        if len(numbers) > 0: return False
+        try:
+            self.tag.get(id = id_tag).delete()
+            self.link.filter(id_tag = id_tag).delete()
+            return True
+        except:
+            return False
+
     # Chain add
     def add_chain(self, id_main_doc, id_slave_doc):
         try:
             self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
+            return -1
         except:
             if self.check_doc(id = id_main_doc) == True and self.check_doc(id = id_slave_doc) == True:
                 self.chain.create(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
@@ -83,10 +103,11 @@ class Data():
             return False
 
     # Doc_number add
-    def add_number(self, main_number = 0):
+    def add_number(self, id_doc, main_number = 0):
         return self.number.create(held_status = False, 
                                   date_create = datetime.datetime.now(),
                                   date_change = datetime.datetime.now(),
+                                  id_doc = id_doc,
                                   main_number = main_number).id
 
     def change_number(self, number, held_status = False):
@@ -102,21 +123,33 @@ class Data():
         except:
             return (False, 0)
 
+
     # Doc_data add
-    def add_data(self, number, id_doc, id_tag, tag_value):
+    def add_data(self, number, id_tag, tag_value):
         try:
-            id = self.data.get(number = number, id_doc = id_doc, 
+            id = self.data.get(number = number, 
                                  id_tag = id_tag, tag_value = tag_value).id
             return (False, id)
         except:
             try:
-                self.number.get(id = number)
+                id_doc = self.number.get(id = number).id_doc
                 self.link.get(id_doc = id_doc, id_tag = id_tag)
-                id = self.data.create(number = number, id_doc = id_doc, 
-                                        id_tag = id_tag, tag_value = tag_value).id
+                id = self.data.create(number = number, 
+                                      id_tag = id_tag, tag_value = tag_value).id
                 return (True, id)
             except:
                 return (False, 0)
+
+    def del_tag_from_datadoc(self, number, id_tag):
+        try:
+            if self.change_number(number = number)[0]:
+                self.data.get(number = number, id_tag = id_tag).delete()
+                return True
+            else:
+                return False
+        except:
+            return False
+
 
     # Doc_data add
     def change_data(self, number, id_tag, tag_value):
@@ -132,11 +165,17 @@ class Data():
             return (False, 0)
 
     def id_doc_from_number(self, number):
-        doc_data = self.data.filter(number = number)
         try:
-            return doc_data[0].id_doc
+            return self.number.get(id = number).id_doc
         except:
             return 0
+
+    def numbers_from_id_doc(self, id_doc):
+        nums = self.number.filter(id_doc = id_doc)
+        out = []
+        for num in nums:
+            out.append(num.id)
+        return map(str, out)
 
 
     def get_slave_docs(self, id_main_doc, main_number):
@@ -148,7 +187,7 @@ class Data():
         created_slave_doc = []
         for created_slave_number in created_slave_numbers:
             try:
-                created_slave_doc.append(self.data.filter(number = created_slave_number.id)[0].id_doc)
+                created_slave_doc.append(created_slave_number.id_doc)
             except:
                 pass
 
@@ -176,5 +215,12 @@ class Data():
 
         return need_docs
 
+    def numbers_from_tag(self, id_tag):
+        docs = self.data.filter(id_tag = id_tag)
+        out = []
+        for doc in docs:
+            if doc.number not in out:
+                out.append(doc.number)
+        return map(str, out)
 
 # vi: ts=4
