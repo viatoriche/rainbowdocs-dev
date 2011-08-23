@@ -158,12 +158,26 @@ class Document:
             return self.content.toprettyxml(encoding)
         return self.content.toxml(encoding)
 
-    def toText(self, skip_blank_lines=True):
+    def toTextContent(self, skip_blank_lines=True):
         """Return the content of the document as a plain-text Unicode string."""
-        textlist = [node.data for node in doc_order_iter(self.content)
+        return unicode(os.linesep).join(self.getText(self.content, skip_blank_lines))
+
+    def getText(self, from_type, skip_blank_lines=True):
+        return [node.data for node in doc_order_iter(from_type)
                     if node.nodeType == node.TEXT_NODE
                     and (not skip_blank_lines or 0 != len(node.data.strip()))]
-        return unicode(os.linesep).join(textlist)
+
+
+    def toText(self, skip_blank_lines=True):
+        """Return the content of the document as a plain-text Unicode string."""
+        content = self.getText(self.content, skip_blank_lines)
+        styles = self.getText(self.styles, skip_blank_lines)
+        meta = self.getText(self.meta, skip_blank_lines)
+        manifest = self.getText(self.manifest, skip_blank_lines)
+
+        all = meta + manifest + styles + content
+
+        return unicode(os.linesep).join(all)
 
     def toHtml(self, title="", encoding="utf-8"):
         """Return an UTF-8 encoded HTML representation of the document."""
@@ -211,6 +225,20 @@ class Document:
         doctypestr = '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">\n'
         return "%s\n%s" % (doctypestr, htmlstr)
 
+    def replacenode(self, search, replace, _replace, for_search, count = 0):
+        for node in doc_order_iter(for_search):
+            if node.nodeType == node.TEXT_NODE and node.data:
+                try:
+                    replaced = _replace(replace, node.data)
+                    if replaced != node.data:
+                        node.data = replaced
+                        count += 1
+                except (sre_constants.error, TypeError), v:
+                    print >>sys.stderr, 'Warning: could not compile regular expression:', v
+                    return 0
+        return count
+
+
     def replace(self, search, replace):
         """Replace all occurences of search in content by replace.
 
@@ -227,19 +255,12 @@ class Document:
         except (sre_constants.error, TypeError), v:
             print >>sys.stderr, 'Warning: could not compile regular expression:', v
             return 0
-        count = 0
-        for node in doc_order_iter(self.content):
-            if node.nodeType == node.TEXT_NODE and node.data:
-                try:
-                    replaced = _replace(replace, node.data)
-                    if replaced != node.data:
-                        node.data = replaced
-                        count += 1
-                except (sre_constants.error, TypeError), v:
-                    print >>sys.stderr, 'Warning: could not compile regular expression:', v
-                    return 0
-        return count
 
+        count = self.replacenode(search, replace, _replace, self.content, 0)
+        count = self.replacenode(search, replace, _replace, self.styles, count)
+        count = self.replacenode(search, replace, _replace, self.meta, count)
+        count = self.replacenode(search, replace, _replace, self.manifest, count)
+        return count
 
 # ----------------------------------------------------------------------------
 # Global functions 
