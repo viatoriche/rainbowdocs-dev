@@ -47,7 +47,7 @@ def odt(request, num = '0'):
                     num,
                     date, date_held,
                     tags):
-        return redirect(u'{0}/forms/{1}'.format(static_url, destfile))
+        return redirect(u'{0}forms/{1}'.format(static_url, destfile))
     else:
         raise Http404
 
@@ -125,21 +125,42 @@ def edit(request, num = '0'):
     db = Data()
 
     if request.method == 'POST':
-        for tag in request.POST:
-            db.change_data(number = num, id_tag = tag, tag_value = request.POST[tag])
+        if request.POST['do'] == 'change':
+            for tag in request.POST:
+                db.change_data(number = num, id_tag = tag, tag_value = request.POST[tag])
 
-        return redirect('/documents/show/{0}/'.format(num))
-
+            return redirect('/documents/show/{0}/'.format(num))
+        if request.POST['do'] == 'add_tag':
+            if db.add_data(number = num, 
+                           id_tag = request.POST['id_tag'], 
+                           tag_value = request.POST['tag_value'])[0]:
+                db.change_number(number = num)
 
     all_data = db.data.filter(number = num)
+    all_db_tags = db.tag.all()
     id_doc = db.number.get(id = num).id_doc
+    doc = db.doc.get(id = id_doc)
 
-    data['Title_Doc'] = db.doc.get(id = id_doc).title
+    data['Title_Doc'] = doc.title
+    data['template'] = doc.print_form
     data['Number'] = num
-    data['Date'] = db.number.get(id = num).date_change
+    num_db = db.number.get(id = num)
+    data['Date'] = num_db.date_change
+    data['held_status'] = num_db.held_status
+    if data['held_status']:
+        data['date_held'] = num_db.date_held
     showthis = []
+    test_tags = []
     for d in all_data:
         showthis.append((d.id_tag, db.tag.get(id = d.id_tag).description, d.tag_value))
+        test_tags.append(d.id_tag)
+
+    all_tags = []
+    for tag in all_db_tags:
+        if tag.id not in test_tags:
+            all_tags.append(tag)
+
+    data['all_tags'] = all_tags
     data['showthis'] = showthis
 
     data['content'] = 'documents/edit.html'
@@ -179,16 +200,19 @@ def show(request, num = '0'):
         return render_to_response('index.html', data)
 
     if request.method == 'POST':
-        try:
+        if request.POST['do'] == 'del_tag':
             id_tag = request.POST['id_tag']
             db.del_tag_from_datadoc(num, id_tag)
-        except:
-            pass
+        elif request.POST['do'] == 'del_number':
+            if db.del_number(num):
+                return redirect('/documents/show/')
 
     all_data = db.data.filter(number = num)
     id_doc = db.id_doc_from_number(num)
+    doc = db.doc.get(id = id_doc)
 
-    data['Title_Doc'] = db.doc.get(id = id_doc).title
+    data['Title_Doc'] = doc.title
+    data['template'] = doc.print_form
     data['Number'] = num
     data['Date'] = db.number.get(id = num).date_change
     data['held_status'] = db.number.get(id = num).held_status
@@ -230,7 +254,7 @@ def new(request, id_doc = '0', id_num = '0'):
     if request.method == 'POST':
         if id_num == '0':
             if db.doc.get(id = id_doc).main:
-                num = db.add_number(id_doc)
+                num = db.add_number(id_doc, id_user = request.user.id)
                 for tag in request.POST:
                     db.add_data(number = num, 
                                 id_tag = tag, 
@@ -242,10 +266,10 @@ def new(request, id_doc = '0', id_num = '0'):
         else:
             id_main_doc = db.id_doc_from_number(id_num)
             if id_main_doc == 0: raise Http404
- 
+
             slaves = db.get_slave_docs(id_main_doc, id_num)
             if id_doc in slaves:
-                num = db.add_number(id_doc, id_num)
+                num = db.add_number(id_doc = id_doc, id_user = request.user.id, main_number = id_num)
                 for tag in request.POST:
                     db.add_data(number = num, id_tag = tag, tag_value = request.POST[tag])
 
@@ -254,24 +278,26 @@ def new(request, id_doc = '0', id_num = '0'):
                 raise Http404
 
 
-    try:
-        doc = db.doc.get(id = id_doc)
-        data['Title_Doc'] = doc.title
-        cur_tags = db.link.filter(id_doc = id_doc)
-        tags = []
-        for tag in cur_tags:
-            tags.append(
-                           (
-                               tag.id_tag, # 0
-                               db.tag.get(id = tag.id_tag).description # 1
-                           )
-                       )
+    doc = db.doc.get(id = id_doc)
+    data['Title_Doc'] = doc.title
+    cur_links = db.link.filter(id_doc = id_doc)
+    tags = []
+    for link in cur_links:
+        if id_num != '0':
+            try:
+                value = db.data.get(number = id_num, id_tag = link.id_tag).tag_value
+            except:
+                value = ''
 
-        data['tags'] = tags
-        data['content'] = 'documents/new.html'
+            tags.append({'id': link.id_tag, 
+                         'desc': db.tag.get(id = link.id_tag).description, 
+                         'value': value})
+        else:
+            tags.append({'id': link.id_tag, 'desc': db.tag.get(id = link.id_tag).description, 'value': ''})
 
-        return render_to_response('index.html', data)
-    except:
-        raise Http404
+    data['tags'] = tags
+    data['content'] = 'documents/new.html'
+
+    return render_to_response('index.html', data)
 
 # vi: ts=4

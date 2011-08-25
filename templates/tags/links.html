@@ -1,4 +1,14 @@
 <br><b>All links and tags:</b><br>
 {% for o in out %}Document: <b>{{ o.0 }}</b><br>Tags:<br>
-{% for l in o.1 %}<form method="post" action="{{ req_url }}">{{ l.1 }} - {{ l.2 }}<input type="hidden" name="id_link" value="{{ l.0 }}"><input type="submit" value="Delete"></form>{% endfor %}<br>
+{% for l in o.1 %}<form method="post" action="{{ req_url }}">{{ l.1 }} - {{ l.2 }}<input type="hidden" name="id_link" value="{{ l.0 }}"><input type="hidden" name="do" value="delete"><input type="submit" value="Delete"></form>{% endfor %}
+{% if o.2|length > 0 %}
+<form method="post" action="{{ req_url }}"><input type="hidden" name="do" value="add">
+    <input type="hidden" name="id_doc" value="{{ o.3 }}">
+    <select name="id_tag" required>
+        {% for tag in o.2 %}<option value="{{ tag.id }}">{{ tag.description }}</option>{% endfor %}
+    </select>
+    <input type="submit" value="Add">
+</form>
+{% endif %}
+<br>
 {% endfor %}

@@ -1,8 +1,24 @@
 <b>Number: {{ Number }}</b><br>
 <b>Document: {{ Title_Doc }}</b><br>
 <b>Date: {{ Date }}</b><br>
+{% if held_status %}<b>Helded - Date: {{ date_held }}<br></b>
+{% else %}
 Change data:<br>
 <form action='{{ req_url }}' method="post" >
     {% for tag in showthis %}{{ tag.1 }}: <input type="text" name="{{ tag.0 }}" value="{{ tag.2 }}"><br>{% endfor %}<br>
+    <input type="hidden" name="do" value="change">
     <input type="submit" value="Change">
 </form>
+{% if all_tags|length > 0 %}
+Add new tag:<br>
+<form action='{{ req_url }}' method="post" >
+    <select name="id_tag" required>
+        {% for tag in all_tags %}<option value="{{ tag.id }}">{{ tag.description }}</option>{% endfor %}<br>
+    <input type="hidden" name="do" value="add_tag">
+    <input type="text" name="tag_value">
+    <input type="submit" value="Add">
+</form>
+{% endif %}
+{% endif %}
+<a href='/documents/show/{{ Number }}/'>Show</a><br>
+<b>Template: {{ template }}</b><br>

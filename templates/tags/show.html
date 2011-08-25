@@ -1,4 +1,13 @@
 <br><b>All tags:</b><br>
-{% for o in out %}{% if o.3|length < 1 %}<form action="{{ req_url }}" method="post">{% endif %}Tag: <b>{{ o.1 }} / {{ o.2 }}</b>{% if o.3|length < 1 %}<input type="hidden" name="id_tag" value="{{ o.0 }}"><input type="submit" value="Delete"></form>{% else %}<br>{% endif %}Numbers of real docs with this tag:<br>
+{% for o in out %}{% if o.3|length < 1 %}<form action="{{ req_url }}" method="post"><input type="hidden" name="do" value="delete">{% endif %}Tag: <b>{{ o.1 }} / {{ o.2 }}</b>{% if o.3|length < 1 %}<input type="hidden" name="id_tag" value="{{ o.0 }}"><input type="submit" value="Delete"></form>{% else %}<br>{% endif %}Numbers of real docs with this tag:<br>
 {% for l in o.3 %}<a href="/documents/show/{{ l }}/">{{ l }}</a><br>{% endfor %}<br>
 {% endfor %}
+<b>Add/Change tag:</b><br>
+<form method="post" action="{{ req_url }}">
+    <input type="hidden" name="do" value="add">
+Name:<br>
+<input type="text" name="name"><br>
+Description:<br>
+<input type="text" name="description"><br>
+<input type="submit" value="Save"><br>
+</form>

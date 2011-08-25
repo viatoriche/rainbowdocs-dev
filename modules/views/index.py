@@ -13,6 +13,7 @@ from modules import support
 
 def main(request):
     data = support.default_answer_data(request)
+    perm = support.check_permission(request)
     data['content'] = 'home.html'
 
     return render_to_response('index.html', data)

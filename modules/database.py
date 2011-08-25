@@ -44,6 +44,8 @@ class Data():
 
     # Doc_tag add
     def add_tag(self, name, description):
+        if name == '': return -1
+        if description == '': description = name
         try:
             tag = self.tag.get(name = name)
             tag.description = description
@@ -103,11 +105,12 @@ class Data():
             return False
 
     # Doc_number add
-    def add_number(self, id_doc, main_number = 0):
+    def add_number(self, id_doc, id_user, main_number = 0):
         return self.number.create(held_status = False, 
                                   date_create = datetime.datetime.now(),
                                   date_change = datetime.datetime.now(),
                                   id_doc = id_doc,
+                                  id_user = id_user,
                                   main_number = main_number).id
 
     def change_number(self, number, held_status = False):
@@ -123,12 +126,24 @@ class Data():
         except:
             return (False, 0)
 
+    def del_number(self, number):
+        try:
+            n = self.number.get(id = number)
+            if n.held_status == True:
+                return False
+            datas = self.data.filter(number = number)
+            for data in datas:
+                data.delete()
+            n.delete()
+            return True
+        except:
+            return False
 
     # Doc_data add
     def add_data(self, number, id_tag, tag_value):
         try:
             id = self.data.get(number = number, 
-                                 id_tag = id_tag, tag_value = tag_value).id
+                                 id_tag = id_tag).id
             return (False, id)
         except:
             try:

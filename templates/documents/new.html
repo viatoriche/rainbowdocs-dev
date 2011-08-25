@@ -1,6 +1,6 @@
 <b>Document: {{ Title_Doc }}</b><br>
 Add data:<br>
 <form action='{{ req_url }}' method="post" >
-    {% for tag in tags %}{{ tag.1 }}: <input type="text" name="{{ tag.0 }}"><br>{% endfor %}<br>
+    {% for tag in tags %}{{ tag.desc }}: <input type="text" name="{{ tag.id }}" value="{{ tag.value }}"><br>{% endfor %}<br>
     <input type="submit" value="Save">
 </form>

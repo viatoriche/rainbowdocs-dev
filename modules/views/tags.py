@@ -19,11 +19,13 @@ def show(request):
     db = Data()
 
     if request.method == 'POST':
-        try:
+        if request.POST['do'] == 'delete':
             id_tag = request.POST['id_tag']
             db.del_tag(id_tag)
-        except:
-            pass
+        if request.POST['do'] == 'add':
+            name = request.POST['name']
+            desc = request.POST['description']
+            db.add_tag(name, desc)
 
     all_tags = db.tag.all()
 
@@ -46,24 +48,34 @@ def links(request):
     db = Data()
 
     if request.method == 'POST':
-        try:
+        if request.POST['do'] == 'delete':
             id_link = request.POST['id_link']
             db.del_link(id_link)
-        except:
-            pass
+        elif request.POST['do'] == 'add':
+            id_doc = request.POST['id_doc']
+            id_tag = request.POST['id_tag']
+            db.add_link(id_doc, id_tag)
 
     all_docs = db.doc.all()
+    all_tags = db.tag.all()
 
     out = []
 
     for doc in all_docs:
         lns = []
         doc_links = db.link.filter(id_doc = doc.id)
+        use_tags = []
+        free_tags = []
         for link in doc_links:
             tag = db.tag.get(id = link.id_tag)
+            use_tags.append(tag)
             lns.append( (link.id, tag.name, tag.description) )
 
-        out.append( (doc.title, lns) )
+        for tag in all_tags:
+            if tag not in use_tags:
+                free_tags.append(tag)
+
+        out.append( (doc.title, lns, free_tags, doc.id) )
 
     data['out'] = out
     data['content'] = 'tags/links.html'
