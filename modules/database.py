@@ -10,32 +10,101 @@
 
 import datetime
 
-from main.models import Doc, Doc_tag, Doc_data, Doc_link, Chain, Doc_number
+from main.models import Doc, Tag, Data, Link, Chain, Number, User_perms, Group_perms
+from django.contrib.auth.models import User, Group
 
-class Data():
+class DataBase():
     def __init__(self):
         self.chain = Chain.objects
         self.doc = Doc.objects
-        self.link = Doc_link.objects
-        self.tag = Doc_tag.objects
-        self.data = Doc_data.objects
-        self.number = Doc_number.objects
+        self.link = Link.objects
+        self.tag = Tag.objects
+        self.data = Data.objects
+        self.number = Number.objects
+        self.user_perms = User_perms.objects
+        self.group_perms = Group_perms.objects
+        self.user = User.objects
+        self.group = Group.objects
+
+    def check_user_perm(self, user, doc, write = False):
+        try:
+            p = self.user_perms.get(doc = doc, user = user)
+            if not write:
+                return True
+            else:
+                return p.write and write
+        except:
+            return False
+
+    def check_group_perm(self, group, doc, write = False):
+        try:
+            p = self.group_perms.get(doc = doc, group = group)
+            if not write:
+                return True
+            else:
+                return p.write and write
+        except:
+            return False
+
+    def add_user_perm(self, user, doc, write = False):
+        try:
+            p = self.user_perms.get(doc = doc, user = user)
+            p.write = write
+            p.save()
+        except:
+            self.user_perms.create(doc = doc, user = user, write = write)
+
+    def add_group_perm(self, group, doc, write = False):
+        try:
+            p = self.group_perms.get(group = group, doc = doc)
+            p.write = write
+            p.save
+        except:
+            self.group_perms.create(doc = doc, group = group, write = write)
+
+    def perm_doc_filter(self, user, input_docs, write = False):
+        if user.is_superuser:
+            return input_docs
+
+        docs = []
+        if write:
+            user_perms = self.user_perms.filter(user = user, write = write)
+        else:
+            user_perms = self.user_perms.filter(user = user)
+
+
+        for user_perm in user_perms:
+            if user_perm.doc not in docs and user_perm.doc in input_docs:
+                docs.append(user_perm.doc)
+
+        groups = user.groups
+        for group in groups.all():
+
+            if write:
+                group_perms = self.group_perms.filter(group = group, write = write)
+            else:
+                group_perms = self.group_perms.filter(group = group)
+
+            for group_perm in group_perms:
+                if group_perm.doc not in docs and group_perm.doc in input_docs:
+                    docs.append(group_perm.doc)
+
+        return docs
 
     # Add Doc
     def add_doc(self, print_form, title, main = False):
+        doc = None
         try:
             doc = self.doc.get(print_form = print_form)
             doc.title = title
             doc.main = main
             doc.save()
         except:
-            self.doc.create(print_form = print_form, title = title, main = main)
-        return self.doc.get(print_form = print_form).id
+            doc = self.doc.create(print_form = print_form, title = title, main = main)
 
-    def del_doc(self, id):
-        pass
+        return doc
 
-    def check_doc(self, id):
+    def check_doc_id(self, id):
         try:
             self.doc.get(id = id)
             return True
@@ -44,121 +113,116 @@ class Data():
 
     # Doc_tag add
     def add_tag(self, name, description):
-        if name == '': return -1
+        if name == '': return None
         if description == '': description = name
         try:
             tag = self.tag.get(name = name)
             tag.description = description
             tag.save()
         except:
-            self.tag.create(name = name, description = description)
-        return self.tag.get(name = name).id
+            tag = self.tag.create(name = name, description = description)
+
+        return tag
 
     # Doc_link add
-    def add_link(self, id_doc, id_tag):
+    def add_link(self, doc, tag):
         try:
-            self.link.get(id_doc = id_doc, id_tag = id_tag)
+            link = self.link.get(doc = doc, tag = tag)
         except:
-            if self.check_doc(id_doc):
-                self.link.create(id_doc = id_doc, id_tag = id_tag)
-            else:
-                return -1
-        return self.link.get(id_doc = id_doc, id_tag = id_tag).id
+            link = self.link.create(doc = doc, tag = tag)
+        return link
 
-    def del_link(self, id_link):
+    def del_link_id(self, id_link):
         try:
             self.link.get(id = id_link).delete()
         except:
             pass
 
-    def del_tag(self, id_tag):
-        numbers = self.numbers_from_tag(id_tag)
+
+    def del_tag(self, tag):
+        numbers = self.numbers_from_tag(tag)
         if len(numbers) > 0: return False
         try:
-            self.tag.get(id = id_tag).delete()
-            self.link.filter(id_tag = id_tag).delete()
+            self.link.filter(tag = tag).delete()
+            tag.delete()
             return True
         except:
             return False
 
     # Chain add
-    def add_chain(self, id_main_doc, id_slave_doc):
+    def add_chain(self, main_doc, slave_doc):
         try:
-            self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
-            return -1
+            chain = self.chain.get(main_doc = main_doc, slave_doc = slave_doc)
         except:
-            if self.check_doc(id = id_main_doc) == True and self.check_doc(id = id_slave_doc) == True:
-                self.chain.create(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
-            else:
-                return -1
-        return self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc).id
+            chain = self.chain.create(main_doc = main_doc, slave_doc = slave_doc)
+        return chain
 
     # Chain check add
     def check_add_chain(self, id_main_doc, id_slave_doc):
-        if self.check_doc(id = id_main_doc) == True and self.check_doc(id = id_slave_doc) == True:
-            try:
-                self.chain.get(id_main_doc = id_main_doc, id_slave_doc = id_slave_doc)
-                return False
-            except:
-                return True
-        else:
+        try:
+            main_doc = self.doc.get(id = id_main_doc)
+            slave_doc = self.doc.get(id = id_slave_doc)
+        except:
             return False
+        try:
+            self.chain.get(main_doc = main_doc, slave_doc = slave_doc)
+            return False
+        except:
+            return True
 
     # Doc_number add
-    def add_number(self, id_doc, id_user, main_number = 0):
-        return self.number.create(held_status = False, 
-                                  date_create = datetime.datetime.now(),
-                                  date_change = datetime.datetime.now(),
-                                  id_doc = id_doc,
-                                  id_user = id_user,
-                                  main_number = main_number).id
+    def add_number(self, doc, user, main_number = None):
+        if main_number == None:
+            return self.number.create(
+                                  doc = doc,
+                                  user = user,
+                                  held_status = False,
+                                 )
+        else:
+            return self.number.create(
+                                  doc = doc,
+                                  user = user,
+                                  held_status = False,
+                                  main_number = main_number
+                                 )
+
 
     def change_number(self, number, held_status = False):
         try:
-            n = self.number.get(id = number)
-            if n.held_status == True:
-                return (False, n.id)
-            if not held_status: n.date_change = datetime.datetime.now()
-            else: n.date_held = datetime.datetime.now()
-            n.held_status = held_status
-            n.save()
-            return (True, n.id)
+            if number.held_status == True:
+                return False
+            if held_status:
+                number.date_held = datetime.datetime.now()
+            number.held_status = held_status
+            number.save()
+            return True
         except:
-            return (False, 0)
+            return False
 
     def del_number(self, number):
         try:
-            n = self.number.get(id = number)
-            if n.held_status == True:
+            if number.held_status == True:
                 return False
-            datas = self.data.filter(number = number)
-            for data in datas:
-                data.delete()
-            n.delete()
+            self.data.filter(number = number).delete()
+            number.delete()
             return True
         except:
             return False
 
     # Doc_data add
-    def add_data(self, number, id_tag, tag_value):
+    def add_data(self, number, tag, tag_value):
         try:
-            id = self.data.get(number = number, 
-                                 id_tag = id_tag).id
-            return (False, id)
+            self.data.get(number = number, tag = tag)
+            return False
         except:
-            try:
-                id_doc = self.number.get(id = number).id_doc
-                self.link.get(id_doc = id_doc, id_tag = id_tag)
-                id = self.data.create(number = number, 
-                                      id_tag = id_tag, tag_value = tag_value).id
-                return (True, id)
-            except:
-                return (False, 0)
+            self.data.create(number = number, 
+                                    tag = tag, tag_value = tag_value)
+            return True
 
-    def del_tag_from_datadoc(self, number, id_tag):
+    def del_tag_from_datadoc(self, number, tag):
         try:
-            if self.change_number(number = number)[0]:
-                self.data.get(number = number, id_tag = id_tag).delete()
+            if self.change_number(number = number):
+                self.data.get(number = number, tag = tag).delete()
                 return True
             else:
                 return False
@@ -167,75 +231,62 @@ class Data():
 
 
     # Doc_data add
-    def change_data(self, number, id_tag, tag_value):
+    def change_data(self, number, tag, tag_value):
         try:
-            if self.change_number(number = number)[0]:
-                data = self.data.get(number = number, id_tag = id_tag)
+            if self.change_number(number = number):
+                data = self.data.get(number = number, tag = tag)
                 data.tag_value = tag_value
                 data.save()
-                return (True, data.id)
+                return data
             else:
-                return (False, data.id)
+                return None
         except:
-            return (False, 0)
+            return None
 
-    def id_doc_from_number(self, number):
-        try:
-            return self.number.get(id = number).id_doc
-        except:
-            return 0
+    def numbers_from_doc(self, doc):
+        return self.number.filter(doc = doc)
 
-    def numbers_from_id_doc(self, id_doc):
-        nums = self.number.filter(id_doc = id_doc)
-        out = []
-        for num in nums:
-            out.append(num.id)
-        return map(str, out)
+    def get_slave_docs(self, main_number):
 
-
-    def get_slave_docs(self, id_main_doc, main_number):
-
-        slave_docs = self.chain.filter(id_main_doc = id_main_doc)
+        docs_chain = self.chain.filter(main_doc = main_number.doc)
+        slave_docs = []
+        for doc_chain in docs_chain:
+            slave_docs.append(doc_chain.slave_doc)
 
         # Created docs
         created_slave_numbers = self.number.filter(main_number = main_number)
         created_slave_doc = []
         for created_slave_number in created_slave_numbers:
             try:
-                created_slave_doc.append(created_slave_number.id_doc)
+                created_slave_doc.append(created_slave_number.doc)
             except:
                 pass
 
         out = []
         for slave_doc in slave_docs:
-            id_slave_doc = slave_doc.id_slave_doc
-            if id_slave_doc not in created_slave_doc:
-                out.append(u'{0}'.format(id_slave_doc))
+            if slave_doc not in created_slave_doc:
+                out.append(slave_doc)
 
         return out
 
-    def get_all_need_slave(self):
+    def get_all_need_slave(self, user):
         held_numbers = self.number.filter(held_status = True)
-        need_docs = []
+        out = []
         for held_number in held_numbers:
-            id_doc = self.id_doc_from_number(held_number.id)
-            if id_doc == 0: continue
-            slave_docs = self.get_slave_docs(id_doc, held_number.id)
-            for id_slave_doc in slave_docs:
-                need_docs.append((
-                        id_slave_doc, 
-                        held_number.id, 
-                        self.doc.get(id = id_doc).title, 
-                        self.doc.get(id = id_slave_doc).title))
+            slave_docs = self.get_slave_docs(held_number)
+            slave_docs = self.perm_doc_filter(user, slave_docs, True)
 
-        return need_docs
+            for slave_doc in slave_docs:
+                out.append( (slave_doc, held_number) )
 
-    def numbers_from_tag(self, id_tag):
-        docs = self.data.filter(id_tag = id_tag)
+        return out
+
+    def numbers_from_tag(self, tag):
+        docs = self.data.filter(tag = tag)
         out = []
         for doc in docs:
             if doc.number not in out:
                 out.append(doc.number)
-        return map(str, out)
+        return out
 
 # vi: ts=4

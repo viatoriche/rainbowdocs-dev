@@ -11,43 +11,46 @@
 from django.shortcuts import redirect
 import config
 from modules import auth_support
-from modules.database import Data
+from modules.database import DataBase as Data
+from django.template import RequestContext
 
 def default_answer_data(request):
     db = Data()
     auth_this = auth_support.auth_user(request)
-    try:
-        username = request.user.get_full_name()
-    except:
-        username = request.user.username
-    if username == '':
-        username = request.user.username
 
-    perm = check_permission(request)
-    return {
-        'username': username,
+    if auth_this:
+        need = len(db.get_all_need_slave(request.user))
+    else:
+        need = 0
+
+    return RequestContext(request, {
         'auth': auth_this,
         'req_url': request.path,
         'Title': config.Title,
-        'Need': len(db.get_all_need_slave()),
-        'perm': perm
-        }
+        'Need': need,
+        })
 
 def auth_error():
-    return redirect('/')
+    return redirect('/login/')
 
-def check_permission(request):
+def perm_error():
+    return redirect('/documents/perm_error/')
+
+def check_doc_perm(request, doc, write = False):
+    db = Data()
+
     user = request.user
-    if user.is_superuser:
-        return {'group': 'root', 'read': True, 'write': True, 'delete': True}
-    else:
-        dbgroups = user.groups.all()
-        groups = []
-        for dbgroup in dbgroups:
-            groups.append(dbgroup.name)
 
-        group = ', '.join(groups)
+    if user.is_superuser: return True
 
-        return {'group': group, 'read': False, 'write': False, 'delete': False}
+    if db.check_user_perm(doc = doc, user = user, write = write):
+        return True
+
+    groups = request.user.groups
+    for group in groups.all():
+        if db.check_group_perm(doc = doc, group = group, write = write):
+            return True
+
+    return False
 
 # vi: ts=4

@@ -1,0 +1,28 @@
+<b><h3>User permissions</b></h3>
+{% for perm in allperms %}
+{{ perm }}
+{% if perms.main.delete_user_perms %}
+<a href="/perms/user/delete/{{ perm.id }}/">Delete</a>
+{% endif %}
+{% if perms.main.change_user_perms %}
+<a href="/perms/user/toggle/{{ perm.id }}/">Toggle write</a>
+{% endif %}
+<br>
+{% endfor %}
+{% if perms.main.add_user_perms %}
+<form method="post" action="{{ req_url }}">
+    <select size="20" required name="user_id">
+        {% for user in users %}
+        <option value="{{ user.id }}">{{ user }}</option>
+        {% endfor %}
+    </select>
+    <select size="20" required name="doc_id" multiple>
+        {% for doc in docs %}
+        <option value="{{ doc.id }}">{{ doc }}</option>
+        {% endfor %}
+    </select><br>
+    Write:<input type="checkbox" name="write" value="enable"><br>
+    <input type="hidden" name="do" value="add">
+    <input type="submit" value="Add">
+</form>
+{% endif %}

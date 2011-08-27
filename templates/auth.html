@@ -1,5 +1,6 @@
-<b>Openchain System</b><br>
+{% if user.is_authenticated %}{% include "logout.html" %}{% include "header.html" %}{% else %}<b>Openchain System</b><br>{% endif %}
 <form action='{{ req_url }}' method="post" >
-   Auth → <input type="text" name="login">:<input type="password" name="pass"><input type="submit" value="Auth">
+    Auth → <input type="text" name="login">:<input type="password" name="pass"><input type="submit" value="Auth">
+    <input type="hidden" name="next" value="{{ next }}" />
 </form>
 {% include "footer.html" %}

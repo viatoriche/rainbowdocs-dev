@@ -11,9 +11,19 @@
 from django.http import Http404
 from django.shortcuts import render_to_response, redirect
 from modules import support, auth_support, parse_docs
-from modules.database import Data
+from modules.database import DataBase as Data
 import settings
+from django.contrib.auth.decorators import permission_required
 
+def perm_error(request):
+    data = support.default_answer_data(request)
+    if not data['auth']: return support.auth_error()
+
+    data['content'] = 'documents/perm_error.html'
+
+    return render_to_response('index.html', data)
+
+@permission_required('main.can_view_number', login_url='/login/')
 def odt(request, num = '0'):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
@@ -27,10 +37,14 @@ def odt(request, num = '0'):
     static_url = settings.STATIC_URL
     destfile = u'{0}.odt'.format(num)
 
-    id_doc = db.id_doc_from_number(num)
-    sourcefile = db.doc.get(id = id_doc).print_form
-
     doc_num = db.number.get(id = num)
+    doc = doc_num.doc
+
+    if not support.check_doc_perm(request, doc):
+        return support.perm_error()
+
+    sourcefile = doc.print_form
+
     date = str(doc_num.date_change)
     if doc_num.held_status:
         date_held = str(doc_num.date_held)
@@ -38,9 +52,9 @@ def odt(request, num = '0'):
         date_held = ''
 
     tags = {}
-    doc_data = db.data.filter(number = num)
+    doc_data = db.data.filter(number = doc_num)
     for dt in doc_data:
-        tags[u'{0}'.format(db.tag.get(id = dt.id_tag).name)] = dt.tag_value
+        tags[u'{0}'.format(dt.tag.name)] = dt.tag_value
 
     if p.create_form(sourcefile, 
                     u'{0}{1}'.format(static_dir, destfile), 
@@ -51,6 +65,8 @@ def odt(request, num = '0'):
     else:
         raise Http404
 
+@permission_required('main.add_doc', login_url='/login/')
+@permission_required('main.add_tag', login_url='/login/')
 def parse(request):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
@@ -63,8 +79,8 @@ def parse(request):
         path_pf = pf[0]
         title_pf = pf[1]
         main_pf = pf[3]
-        id_doc = db.add_doc(path_pf, title_pf, main_pf)
-        doc_alltags = db.link.filter(id_doc = id_doc)
+        doc = db.add_doc(path_pf, title_pf, main_pf)
+        doc_links = db.link.filter(doc = doc)
         new_tags = pf[2]
         tags = []
         test_tags = []
@@ -73,15 +89,15 @@ def parse(request):
             test_tags.append(tag_name)
             tag_desc = tag[1]
             try:
-                id_tag = db.tag.get(name = tag_name).id
-                db.link.get(id_doc = id_doc, id_tag = id_tag)
+                dbtag = db.tag.get(name = tag_name)
+                db.link.get(doc = doc, tag = dbtag)
             except:
                 tags.append(tag)
-            id_tag = db.add_tag(tag_name, tag_desc)
-            db.add_link(id_doc, id_tag)
+            db_tag = db.add_tag(tag_name, tag_desc)
+            db.add_link(doc, db_tag)
         delete_tags = []
-        for tag in doc_alltags:
-            t = db.tag.get(id = tag.id_tag)
+        for link in doc_links:
+            t = link.tag
             name = t.name
             desc = t.description
             if name not in test_tags:
@@ -94,6 +110,7 @@ def parse(request):
 
     return render_to_response('index.html', data)
 
+@permission_required('main.can_view_doc', login_url='/login/')
 def all(request):
     auth_this = auth_support.auth_user(request)
     if not auth_this: return support.auth_error()
@@ -106,6 +123,7 @@ def all(request):
 
     return render_to_response('documents/all.html', data)
 
+@permission_required('main.change_number', login_url='/login/')
 def held(request, num = '0'):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
@@ -113,10 +131,17 @@ def held(request, num = '0'):
     if num == '0': raise Http404
 
     db = Data()
-    db.change_number(num, True)
+
+    number = db.number.get(id = num)
+
+    if not support.check_doc_perm(request, number.doc, True):
+        return support.perm_error()
+
+    db.change_number(number, True)
 
     return redirect('/documents/show/')
 
+@permission_required('main.can_view_number', login_url='/login/')
 def edit(request, num = '0'):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
@@ -124,40 +149,49 @@ def edit(request, num = '0'):
 
     db = Data()
 
+    num = db.number.get(id = num)
+
+    if not support.check_doc_perm(request, num.doc, True):
+        return support.perm_error()
+
     if request.method == 'POST':
         if request.POST['do'] == 'change':
             for tag in request.POST:
-                db.change_data(number = num, id_tag = tag, tag_value = request.POST[tag])
+                if tag == 'do': continue
+                if request.user.has_perm('main.change_data'):
+                    db.change_data(number = num, 
+                               tag = db.tag.get(id = tag), 
+                               tag_value = request.POST[tag])
 
-            return redirect('/documents/show/{0}/'.format(num))
+            return redirect('/documents/show/{0}/'.format(num.id))
+
         if request.POST['do'] == 'add_tag':
-            if db.add_data(number = num, 
-                           id_tag = request.POST['id_tag'], 
-                           tag_value = request.POST['tag_value'])[0]:
-                db.change_number(number = num)
+            if request.user.has_perm('main.add_data') and request.user.has_perm('main.change_number'):
+                if db.add_data(number = num, 
+                           tag = db.tag.get(id = request.POST['id_tag']), 
+                           tag_value = request.POST['tag_value']):
+                    db.change_number(number = num)
 
     all_data = db.data.filter(number = num)
     all_db_tags = db.tag.all()
-    id_doc = db.number.get(id = num).id_doc
-    doc = db.doc.get(id = id_doc)
+    doc = num.doc
 
     data['Title_Doc'] = doc.title
     data['template'] = doc.print_form
-    data['Number'] = num
-    num_db = db.number.get(id = num)
-    data['Date'] = num_db.date_change
-    data['held_status'] = num_db.held_status
+    data['Number'] = num.id
+    data['Date'] = num.date_change
+    data['held_status'] = num.held_status
     if data['held_status']:
-        data['date_held'] = num_db.date_held
+        data['date_held'] = num.date_held
     showthis = []
     test_tags = []
     for d in all_data:
-        showthis.append((d.id_tag, db.tag.get(id = d.id_tag).description, d.tag_value))
-        test_tags.append(d.id_tag)
+        showthis.append(d)
+        test_tags.append(d.tag)
 
     all_tags = []
     for tag in all_db_tags:
-        if tag.id not in test_tags:
+        if tag not in test_tags:
             all_tags.append(tag)
 
     data['all_tags'] = all_tags
@@ -167,6 +201,7 @@ def edit(request, num = '0'):
 
     return render_to_response('index.html', data)
 
+@permission_required('main.can_view_number', login_url='/login/')
 def show(request, num = '0'):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
@@ -175,59 +210,70 @@ def show(request, num = '0'):
     if num == '0':
         if request.method == 'POST':
             number = request.POST['number']
+            num = db.number.get(id = number)
+
+            if not support.check_doc_perm(request, num.doc):
+                return support.perm_error()
+
             if request.POST['do'] == 'Show':
                 return redirect('/documents/show/{0}/'.format(number))
             elif request.POST['do'] == 'Edit':
+                if not support.check_doc_perm(request, num.doc, True):
+                    return support.perm_error()
+
                 return redirect('/documents/edit/{0}/'.format(number))
             elif request.POST['do'] == 'Held':
+                if not support.check_doc_perm(request, num.doc, True):
+                    return support.perm_error()
+
                 return redirect('/documents/held/{0}/'.format(number))
             elif request.POST['do'] == 'ODT':
                 return redirect('/documents/odt/{0}/'.format(number))
 
-
         nums = db.number.all()
-        out = []
-        for n in nums:
-            # 0 - number, 1 - title, 2 - date_change, 3 - held, 4 - dateheld
-            out.append((n.id, 
-                        db.doc.get(id = db.id_doc_from_number(n.id)).title, 
-                        n.date_change,
-                        n.held_status,
-                        n.date_held))
-        data['out'] = out
+        data['numbers'] = nums
         data['content'] = 'documents/numbers.html'
 
         return render_to_response('index.html', data)
 
+    num = db.number.get(id = num)
+    if not support.check_doc_perm(request, num.doc):
+        return support.perm_error()
+
     if request.method == 'POST':
         if request.POST['do'] == 'del_tag':
+            if not support.check_doc_perm(request, num.doc, True):
+                return support.perm_error()
+
             id_tag = request.POST['id_tag']
-            db.del_tag_from_datadoc(num, id_tag)
+            if request.user.has_perm('main.delete_data') and request.user.has_perm('main.change_number'):
+                db.del_tag_from_datadoc(num, db.tag.get(id = id_tag))
         elif request.POST['do'] == 'del_number':
-            if db.del_number(num):
-                return redirect('/documents/show/')
+            if request.user.has_perm('main.delete_number'):
+                if not support.check_doc_perm(request, num.doc, True):
+                    return support.perm_error()
+
+                if db.del_number(num):
+                    return redirect('/documents/show/')
+
 
     all_data = db.data.filter(number = num)
-    id_doc = db.id_doc_from_number(num)
-    doc = db.doc.get(id = id_doc)
+    doc = num.doc
 
     data['Title_Doc'] = doc.title
     data['template'] = doc.print_form
-    data['Number'] = num
-    data['Date'] = db.number.get(id = num).date_change
-    data['held_status'] = db.number.get(id = num).held_status
-    data['Date_Held'] = db.number.get(id = num).date_held
-    showthis = []
-    for d in all_data:
-        showthis.append( (db.tag.get(id = d.id_tag).description, 
-                          d.tag_value,
-                          d.id_tag) 
-                       )
-    data['showthis'] = showthis
+    data['Number'] = num.id
+    data['Date'] = num.date_change
+    data['held_status'] = num.held_status
+    data['Date_Held'] = num.date_held
+
+    data['showthis'] = all_data
     data['content'] = 'documents/show.html'
 
     return render_to_response('index.html', data)
 
+@permission_required('main.add_number', login_url='/login/')
+@permission_required('main.add_data', login_url='/login/')
 def new(request, id_doc = '0', id_num = '0'):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
@@ -237,6 +283,10 @@ def new(request, id_doc = '0', id_num = '0'):
     if id_doc == '0':
         if request.method == 'POST':
             id_doc = request.POST['id_doc']
+
+            if not support.check_doc_perm(request, db.doc.get(id = id_doc), True):
+                return support.perm_error()
+
             num = '0'
             if db.doc.get(id = id_doc).main:
                 return redirect('/documents/new/{0}/{1}/'.format(id_doc, num))
@@ -245,55 +295,60 @@ def new(request, id_doc = '0', id_num = '0'):
 
         docs = db.doc.filter(main = True)
 
+        docs = db.perm_doc_filter(request.user, docs, True)
+
         data['content'] = 'documents/choose.html'
         data['docs'] = docs
         return render_to_response('index.html', data)
 
-    if not db.check_doc(id_doc): raise Http404
+    if not db.check_doc_id(id_doc): raise Http404
+
+    doc = db.doc.get(id = id_doc)
+    if not support.check_doc_perm(request, doc, True):
+        return support.perm_error()
 
     if request.method == 'POST':
         if id_num == '0':
-            if db.doc.get(id = id_doc).main:
-                num = db.add_number(id_doc, id_user = request.user.id)
+            if doc.main:
+                num = db.add_number(doc, user = request.user)
                 for tag in request.POST:
-                    db.add_data(number = num, 
-                                id_tag = tag, 
+                    db.add_data(number = num,
+                                tag = db.tag.get(id = tag),
                                 tag_value = request.POST[tag])
 
-                return redirect('/documents/show/{0}/'.format(num))
+                return redirect('/documents/show/{0}/'.format(num.id))
             else:
                 raise Http404
         else:
-            id_main_doc = db.id_doc_from_number(id_num)
-            if id_main_doc == 0: raise Http404
+            main_num = db.number.get(id = id_num)
 
-            slaves = db.get_slave_docs(id_main_doc, id_num)
-            if id_doc in slaves:
-                num = db.add_number(id_doc = id_doc, id_user = request.user.id, main_number = id_num)
+            slaves = db.get_slave_docs(main_num)
+            if doc in slaves:
+                num = db.add_number(doc = doc, user = request.user, main_number = main_num)
                 for tag in request.POST:
-                    db.add_data(number = num, id_tag = tag, tag_value = request.POST[tag])
+                    db.add_data(number = num, tag = db.tag.get(id = tag), tag_value = request.POST[tag])
 
-                return redirect('/documents/show/{0}/'.format(num))
+                return redirect('/documents/show/{0}/'.format(num.id))
             else:
                 raise Http404
 
 
-    doc = db.doc.get(id = id_doc)
     data['Title_Doc'] = doc.title
-    cur_links = db.link.filter(id_doc = id_doc)
+    cur_links = db.link.filter(doc = doc)
     tags = []
     for link in cur_links:
         if id_num != '0':
+            num = db.number.get(id = id_num)
             try:
-                value = db.data.get(number = id_num, id_tag = link.id_tag).tag_value
+                value = db.data.get(number = num, tag = link.tag).tag_value
             except:
                 value = ''
 
-            tags.append({'id': link.id_tag, 
-                         'desc': db.tag.get(id = link.id_tag).description, 
+            tags.append({'id': link.tag.id, 
+                         'desc': link.tag.description, 
                          'value': value})
         else:
-            tags.append({'id': link.id_tag, 'desc': db.tag.get(id = link.id_tag).description, 'value': ''})
+            tags.append({'id': link.tag.id, 'desc': link.tag.description, 'value': ''})
 
     data['tags'] = tags
     data['content'] = 'documents/new.html'

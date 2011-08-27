@@ -5,11 +5,13 @@
 {% else %}
 Change data:<br>
 <form action='{{ req_url }}' method="post" >
-    {% for tag in showthis %}{{ tag.1 }}: <input type="text" name="{{ tag.0 }}" value="{{ tag.2 }}"><br>{% endfor %}<br>
+				{% for data in showthis %}{{ data.tag.description }}: <input type="text" name="{{ data.tag.id }}" value="{{ data.tag_value }}"><br>{% endfor %}<br>
+		{% if perms.main.change_number and perms.main.change_data %}
     <input type="hidden" name="do" value="change">
-    <input type="submit" value="Change">
+		<input type="submit" value="Change">
+		{% endif %}
 </form>
-{% if all_tags|length > 0 %}
+{% if all_tags|length > 0 and perms.main.add_data %}
 Add new tag:<br>
 <form action='{{ req_url }}' method="post" >
     <select name="id_tag" required>
@@ -21,4 +23,4 @@ Add new tag:<br>
 {% endif %}
 {% endif %}
 <a href='/documents/show/{{ Number }}/'>Show</a><br>
-<b>Template: {{ template }}</b><br>
+<b>Template: {{ template }}</b>

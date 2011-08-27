@@ -4,7 +4,9 @@ All documents (id == title)<br><br>
 {% endfor %}
 <form method="post" action="{{ req_url }}">
     Chains: id_main-id_slave id_main-id_slave<br>
+    <b>Current Chains:</b><br> {% for chain in chains %}{{ chain.main_doc.id }} {{ chain.main_doc.title }} → {{ chain.slave_doc.id }} {{ chain.slave_doc.title }}<br>{% endfor %}<br>
+    {% if perms.main.change_chain or perms.main.add_chain %}<input type="text" name="chains" value="">
     Example: 1-2 3-4 2-3<br>
-    <input type="text" name="chains" value="{% for chain in chains %}{{ chain.id_main_doc }}-{{ chain.id_slave_doc }} {% endfor %}">
     <input type="submit" value="Save">
+    {% endif %}
 </form>

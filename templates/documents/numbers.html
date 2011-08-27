@@ -1,7 +1,7 @@
 <form action="{{ req_url }}" method="post">
     <p><b>Choose document:</b><br><select size="20" required name="number">
-        {% for o in out %}{% if o.3 %}<option value="{{ o.0 }}">{{ o.0 }} → {{o.1}} | {{ o.2 }} Helded: {{ o.4 }}</option>{% else %}<option value="{{ o.0 }}">{{ o.0 }} → {{o.1}} | {{ o.2 }}</option>{% endif %}
+        {% for number in numbers %}{% if number.held_status %}<option value="{{ number.id }}">{{ number.id }} → {{ number.doc.title }} | {{ number.date_change }} Helded: {{ number.date_held }}</option>{% else %}<option value="{{ number.id }}">{{ number.id }} → {{number.doc.title}} | {{ number.date_change }}</option>{% endif %}
     {% endfor %}
    </select></p>
-   <p><input type="submit" name="do" value="Show"> <input type="submit" name="do" value="Edit"> <input type="submit" name="do" value="Held"> <input type="submit" name="do" value="ODT"></p>
+   <p><input type="submit" name="do" value="Show"> {% if perms.main.change_data and perms.main.change_number %}<input type="submit" name="do" value="Edit">{% endif %} {% if perms.main.change_number %} <input type="submit" name="do" value="Held"> {% endif %} <input type="submit" name="do" value="ODT"></p>
 </form>

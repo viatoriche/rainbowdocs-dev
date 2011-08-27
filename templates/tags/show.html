@@ -1,7 +1,9 @@
 <br><b>All tags:</b><br>
-{% for o in out %}{% if o.3|length < 1 %}<form action="{{ req_url }}" method="post"><input type="hidden" name="do" value="delete">{% endif %}Tag: <b>{{ o.1 }} / {{ o.2 }}</b>{% if o.3|length < 1 %}<input type="hidden" name="id_tag" value="{{ o.0 }}"><input type="submit" value="Delete"></form>{% else %}<br>{% endif %}Numbers of real docs with this tag:<br>
-{% for l in o.3 %}<a href="/documents/show/{{ l }}/">{{ l }}</a><br>{% endfor %}<br>
+{% for o in out %}{% if o.numbers|length < 1 and perms.main.delete_tag %}<form action="{{ req_url }}" method="post"><input type="hidden" name="do" value="delete">{% endif %}Tag: <b>{{ o.tag.name }} / {{ o.tag.description }}</b>{% if perms.main.delete_tag and  o.numbers|length < 1 %}<input type="hidden" name="id_tag" value="{{ o.tag.id }}"><input type="submit" value="Delete"></form>{% else %}<br>{% endif %}{% if perms.main.can_view_number %}Numbers of real docs with this tag:<br>
+{% for number in o.numbers %}<a href="/documents/show/{{ number.id }}/">{{ number.id }} / {{ number.doc.title }}</a><br>{% endfor %}<br>
+{% endif %}
 {% endfor %}
+{% if perms.main.add_tag or perms.main.change_tag %}
 <b>Add/Change tag:</b><br>
 <form method="post" action="{{ req_url }}">
     <input type="hidden" name="do" value="add">
@@ -11,3 +13,4 @@ Description:<br>
 <input type="text" name="description"><br>
 <input type="submit" value="Save"><br>
 </form>
+{% endif %}

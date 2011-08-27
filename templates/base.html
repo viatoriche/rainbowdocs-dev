@@ -5,12 +5,12 @@
         {% endblock %}
     </head>
     <body>
-        {% if auth %}
+        {% if user.is_authenticated %}
             {% include "logout.html" %}
             {% block header %}
-            {% endblock %}
+            {% endblock %}<br>
             {% block content %}
-            {% endblock %}
+            {% endblock %}<br>
             {% block footer %}
             {% endblock %}
         {% else %}
