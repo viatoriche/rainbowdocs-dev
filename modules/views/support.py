@@ -14,9 +14,6 @@ from modules import support
 def main(request):
     data = support.default_answer_data(request)
 
-    if not request.user.is_staff:
-        return redirect('/login/?next=/support/')
-
     data['content'] = 'support.html'
 
     return render_to_response('index.html', data)
