@@ -1,6 +1,7 @@
 <b>Title: {{ Title_Doc }}</b><br>
 <b>Number: {{ Number }}</b><br>
 <b>Date: {{ Date }}</b><br>
+<b>Author: {{ Author }}</b><br>
 {% if held_status %}<b>Helded: {{ Date_Held }}</b><br>
 {% else %}{% if perms.main.change_number %}
 <a href="/documents/held/{{ Number }}/">Held</a><br>

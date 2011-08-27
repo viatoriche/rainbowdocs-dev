@@ -44,9 +44,10 @@ class Parser():
     def get_doc(self, filename):
         return odf.load('{0}/{1}'.format(self.dir_printforms, filename))
 
-    def create_form(self, printform, dest, number, date, date_held, tags):
+    def create_form(self, printform, dest, number, date, date_held, tags, author = ''):
         doc = self.get_doc(printform)
         doc.replace(r'{{\s*main\s*}}', '')
+        doc.replace(r'{{\s*author\s*}}', author)
         doc.replace(r'{{\s*begin_title\s*}}', '')
         doc.replace(r'{{\s*end_title\s*}}', '')
         doc.replace(r'{{\s*number\s*}}', number)

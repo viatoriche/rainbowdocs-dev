@@ -56,11 +56,15 @@ def odt(request, num = '0'):
     for dt in doc_data:
         tags[u'{0}'.format(dt.tag.name)] = dt.tag_value
 
+    author = doc_num.user.get_full_name()
+    if author == '':
+        author = doc_num.user.username
+
     if p.create_form(sourcefile, 
                     u'{0}{1}'.format(static_dir, destfile), 
                     num,
                     date, date_held,
-                    tags):
+                    tags, author):
         return redirect(u'{0}forms/{1}'.format(static_url, destfile))
     else:
         raise Http404
@@ -180,6 +184,7 @@ def edit(request, num = '0'):
     data['template'] = doc.print_form
     data['Number'] = num.id
     data['Date'] = num.date_change
+    data['Author'] = '{0} [{1}]'.format(num.user.username, num.user.get_full_name())
     data['held_status'] = num.held_status
     if data['held_status']:
         data['date_held'] = num.date_held
@@ -264,6 +269,7 @@ def show(request, num = '0'):
     data['template'] = doc.print_form
     data['Number'] = num.id
     data['Date'] = num.date_change
+    data['Author'] = '{0} [{1}]'.format(num.user.username, num.user.get_full_name())
     data['held_status'] = num.held_status
     data['Date_Held'] = num.date_held
 
