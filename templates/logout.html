@@ -1,3 +1,3 @@
 <form action='{{ req_url }}' method="post">
-    {{ username }} / {{ perm.group }} : <input type="submit" name="logout" value="Logout">
+    {{ user.username }} / {% if user.is_superuser %}root{% endif %}{% for group in user.groups.all %}{{ group.name }}{% endfor %} : <input type="submit" name="logout" value="Logout">
 </form>

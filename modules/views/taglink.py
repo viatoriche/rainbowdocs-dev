@@ -10,8 +10,10 @@
 
 from django.shortcuts import render_to_response
 from modules import support
-from modules.database import Data
+from modules.database import DataBase as Data
+from django.contrib.auth.decorators import permission_required
 
+@permission_required('main.can_view_tag', login_url='/login/')
 def show(request):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
@@ -21,26 +23,30 @@ def show(request):
     if request.method == 'POST':
         if request.POST['do'] == 'delete':
             id_tag = request.POST['id_tag']
-            db.del_tag(id_tag)
+            if request.user.has_perm('main.delete_tag'):
+                db.del_tag(db.tag.get(id = id_tag))
         if request.POST['do'] == 'add':
             name = request.POST['name']
             desc = request.POST['description']
-            db.add_tag(name, desc)
+            if request.user.has_perm('main.add_tag'):
+                db.add_tag(name, desc)
 
     all_tags = db.tag.all()
 
     out = []
 
     for tag in all_tags:
-        numbers = db.numbers_from_tag(tag.id)
-        out.append( (tag.id, tag.name, tag.description, numbers) )
+        numbers = db.numbers_from_tag(tag)
+        out.append( {'tag': tag, 'numbers': numbers} )
 
     data['out'] = out
     data['content'] = 'tags/show.html'
 
     return render_to_response('index.html', data)
 
-
+@permission_required('main.can_view_link', login_url='/login/')
+@permission_required('main.can_view_tag', login_url='/login/')
+@permission_required('main.can_view_doc', login_url='/login/')
 def links(request):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
@@ -50,11 +56,14 @@ def links(request):
     if request.method == 'POST':
         if request.POST['do'] == 'delete':
             id_link = request.POST['id_link']
-            db.del_link(id_link)
+            if request.user.has_perm('main.delete_link'):
+                db.del_link_id(id_link)
         elif request.POST['do'] == 'add':
             id_doc = request.POST['id_doc']
             id_tag = request.POST['id_tag']
-            db.add_link(id_doc, id_tag)
+            if request.user.has_perm('main.add_link'):
+                db.add_link(db.doc.get(id = id_doc), 
+                        db.tag.get(id = id_tag))
 
     all_docs = db.doc.all()
     all_tags = db.tag.all()
@@ -63,19 +72,19 @@ def links(request):
 
     for doc in all_docs:
         lns = []
-        doc_links = db.link.filter(id_doc = doc.id)
+        doc_links = db.link.filter(doc = doc)
         use_tags = []
         free_tags = []
         for link in doc_links:
-            tag = db.tag.get(id = link.id_tag)
+            tag = link.tag
             use_tags.append(tag)
-            lns.append( (link.id, tag.name, tag.description) )
+            lns.append(link)
 
         for tag in all_tags:
             if tag not in use_tags:
                 free_tags.append(tag)
 
-        out.append( (doc.title, lns, free_tags, doc.id) )
+        out.append( {'doc': doc, 'links': lns, 'free_tags': free_tags} )
 
     data['out'] = out
     data['content'] = 'tags/links.html'

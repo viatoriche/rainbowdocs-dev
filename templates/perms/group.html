@@ -1,0 +1,28 @@
+<b><h3>Group permissions</b></h3>
+{% for perm in allperms %}
+{{ perm }}
+{% if perms.main.delete_group_perms %}
+<a href="/perms/group/delete/{{ perm.id }}/">Delete</a>
+{% endif %}
+{% if perms.main.change_group_perms %}
+<a href="/perms/group/toggle/{{ perm.id }}/">Toggle write</a>
+{% endif %}
+<br>
+{% endfor %}
+{% if perms.main.add_group_perms %}
+<form method="post" action="{{ req_url }}">
+    <select size="20" required name="group_id">
+        {% for group in groups %}
+        <option value="{{ group.id }}">{{ group }}</option>
+        {% endfor %}
+    </select>
+    <select size="20" required name="doc_id" multiple>
+        {% for doc in docs %}
+        <option value="{{ doc.id }}">{{ doc }}</option>
+        {% endfor %}
+    </select><br>
+    Write:<input type="checkbox" name="write" value="enable"><br>
+    <input type="hidden" name="do" value="add">
+    <input type="submit" value="Add">
+</form>
+{% endif %}

@@ -11,9 +11,7 @@
 from django.test import TestCase
 from django.test.client import Client
 from django.contrib import auth
-from modules import parse_docs
-from modules.database import Data
-import settings
+from modules.database import DataBase
 
 
 class WebTest(TestCase):
@@ -24,15 +22,15 @@ class WebTest(TestCase):
         auth.models.User.objects.create_user('test', 'test@test.ru', 'nya')
 
     def testBasic(self):
-        data = Data()
+        db = DataBase()
         response = self.client.post('', {'login': 'test', 'pass': 'nya'})
         login = self.client.login(username='test', password='nya')
         self.assertEqual(login, True)
         self.assertContains(response, 'logout')
 
-        data.add_doc('jopa0.odt', 'JOPA0', True)
-        data.add_doc('jopa1.odt', 'JOPA1', True)
-        data.add_doc('jopa2.odt', 'JOPA2', False)
+        doc1 = db.add_doc('jopa0.odt', 'JOPA0', True)
+        doc2 = db.add_doc('jopa1.odt', 'JOPA1', True)
+        doc3 = db.add_doc('jopa2.odt', 'JOPA2', False)
 
         response = self.client.get('/documents/all/')
         self.assertEqual(response.status_code, 200)
@@ -48,8 +46,8 @@ class WebTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'True')
 
-        data.add_chain(1, 1)
-        data.add_chain(1, 2)
+        db.add_chain(doc1, doc1)
+        db.add_chain(doc1, doc2)
 
         response = self.client.get('/chains/addcheck/1/1/')
         self.assertContains(response, 'False')
@@ -60,13 +58,13 @@ class WebTest(TestCase):
         response = self.client.get('/chains/addcheck/1/')
         self.assertEqual(response.status_code, 404)
 
-        t1 = data.add_tag('tag1', 'tag1')
-        t2 = data.add_tag('tag2', 'tag2')
-        t3 = data.add_tag('tag3', 'tag3')
+        t1 = db.add_tag('tag1', 'tag1')
+        t2 = db.add_tag('tag2', 'tag2')
+        t3 = db.add_tag('tag3', 'tag3')
 
-        data.add_link(1, t3)
-        data.add_link(1, t2)
-        data.add_link(1, t1)
+        db.add_link(doc1, t3)
+        db.add_link(doc1, t2)
+        db.add_link(doc1, t1)
 
         response = self.client.get('/documents/new/')
         self.assertEqual(response.status_code, 200)
@@ -77,9 +75,12 @@ class WebTest(TestCase):
 
         response = self.client.get('/documents/new/1/')
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'tag3: <input type="text" name="4"><br>tag2: <input type="text" name="3"><br>tag1: <input type="text" name="2"><br><br>')
 
-        response = self.client.post('/documents/new/1/', {t1: 'nya1', t2: 'nya2', t3: 'nya3'})
+        self.assertContains(response, 'tag3')
+        self.assertContains(response, 'tag2')
+        self.assertContains(response, 'tag1')
+
+        response = self.client.post('/documents/new/1/', {t1.id: 'nya1', t2.id: 'nya2', t3.id: 'nya3'})
         self.assertEqual(response.status_code, 302)
 
         response = self.client.get('/documents/show/1/')
@@ -90,7 +91,7 @@ class WebTest(TestCase):
         response = self.client.get('/documents/edit/1/')
         self.assertContains(response, '<input type="submit" value="Change">')
 
-        response = self.client.post('/documents/edit/1/', {t1: 'nya1_e', t2: 'nya2_e', t3: 'nya3_e'})
+        response = self.client.post('/documents/edit/1/', {'do': 'change', t1.id: 'nya1_e', t2.id: 'nya2_e', t3.id: 'nya3_e'})
         self.assertEqual(response.status_code, 302)
 
         response = self.client.get('/documents/show/1/')
@@ -123,92 +124,81 @@ class WebTest(TestCase):
         self.assertEqual(response.status_code, 302)
 
 class DBTest(TestCase):
+    def setUp(self):
+        # Every test needs a client.
+        self.user = auth.models.User.objects.create_user('test', 'test@test.ru', 'nya')
+
     def testBasic(self):
-        data = Data()
-        p = parse_docs.Parser(settings.PRINT_FORMS_DIR)
-        print 'All print forms:'
-        scanned = p.scan()
-        for pf in scanned:
-            path_pf = pf[0]
-            title_pf = pf[1]
-            main_pf = pf[3]
-            print u'Path: {0} / Title: {1} / Main: {2}\nTags:'.format(path_pf, title_pf, main_pf)
-            for tag in pf[2]:
-                tag_name = tag[0]
-                tag_desc = tag[1]
-                print u'Name: {0} / Description: {1}'.format(tag_name, tag_desc)
-            print ''
+        db = DataBase()
 
-        id_doc = data.add_doc('jopa.odt', 'JOPA1', True)
-        id_doc = data.add_doc('jopa.odt', 'JOPA', True)
-        self.assertEqual(id_doc, 1)
-        self.assertEqual(data.doc.get(id = id_doc).title, 'JOPA')
+        doc1 = db.add_doc('jopa.odt', 'JOPA1', True)
+        doc1 = db.add_doc('jopa.odt', 'JOPA', True)
+        self.assertEqual(doc1.id, 1)
+        self.assertEqual(doc1.title, 'JOPA')
 
-        id_doc2 = data.add_doc('jopa2.odt', 'JOPA2', False)
-        self.assertEqual(id_doc2, 2)
+        doc2 = db.add_doc('jopa2.odt', 'JOPA2', False)
+        self.assertEqual(doc2.id, 2)
 
-        id_doc3 = data.add_doc('jopa3.odt', 'JOPA3', False)
-        self.assertEqual(id_doc3, 3)
+        doc3 = db.add_doc('jopa3.odt', 'JOPA3', False)
+        self.assertEqual(doc3.id, 3)
 
-        id_tag = data.add_tag('FIO', 'Name and Surname')
-        id_tag = data.add_tag('FIO', 'Name and Surname 2')
-        self.assertEqual(id_tag, 1)
-        self.assertEqual(data.tag.get(id=1).description, 'Name and Surname 2')
+        tag1 = db.add_tag('FIO', 'Name and Surname')
+        tag1 = db.add_tag('FIO', 'Name and Surname 2')
+        self.assertEqual(tag1.id, 1)
+        self.assertEqual(tag1.description, 'Name and Surname 2')
 
-        id_tag2 = data.add_tag('date', u'Date')
-        self.assertEqual(id_tag2, 2)
+        tag2 = db.add_tag('date', u'Date')
+        self.assertEqual(tag2.id, 2)
 
-        id_link = data.add_link(1, 1)
-        id_link = data.add_link(1, 1)
-        self.assertEqual(id_link, 1)
+        link1 = db.add_link(doc1, tag1)
+        link1 = db.add_link(doc1, tag1)
+        self.assertEqual(link1.id, 1)
 
-        id_link2 = data.add_link(1, 2)
-        id_link3 = data.add_link(2, 2)
+        link2 = db.add_link(doc1, tag2)
+        link3 = db.add_link(doc2, tag2)
 
-        self.assertEqual((id_link2, id_link3), (2, 3))
+        self.assertEqual((link2.id, link3.id), (2, 3))
 
-        id_chain = data.add_chain(1, 2)
-        self.assertEqual(id_chain, 1)
-        id_chain = data.add_chain(1, 2)
-        self.assertEqual(id_chain, -1)
+        chain1 = db.add_chain(doc1, doc2)
+        self.assertEqual(chain1.id, 1)
+        chain1 = db.add_chain(doc1, doc2)
+        self.assertEqual(chain1.id, 1)
 
-        id_chain2 = data.add_chain(3, 1)
-        self.assertEqual(id_chain2, 2)
+        chain2 = db.add_chain(doc3, doc1)
+        self.assertEqual(chain2.id, 2)
 
-        id_num = data.add_number(1)
-        self.assertEqual(id_num, 1)
+        num1 = db.add_number(doc1, self.user)
+        self.assertEqual(num1.id, 1)
 
-        id_num = data.add_number(1, 1)
-        self.assertEqual(id_num, 2)
+        num2 = db.add_number(doc1, self.user, num1)
+        self.assertEqual(num2.id, 2)
 
-        res_add = data.add_data(1, 1, 'gggg')
-        self.assertEqual(res_add[0], True)
+        data1 = db.add_data(num1, tag1, 'gggg')
+        self.assertEqual(data1, True)
 
-        res_add = data.add_data(3, 1, 'gggg')
-        self.assertEqual(res_add[0], False)
+        data2 = db.add_data(num1, tag1, 'hhhh')
+        self.assertEqual(data2, False)
 
-        res_add = data.add_data(2, 1, 'gggg')
-        self.assertEqual(res_add[0], True)
+        data2 = db.add_data(num2, tag1, 'hhhh')
+        self.assertEqual(data2, True)
 
-        r = data.change_data(1, 1, 'lololo')[0]
+        data1 = db.change_data(num1, tag1, 'lololo')
+        self.assertEqual(data1.tag_value, 'lololo')
+
+        r = db.change_number(num1, False)
         self.assertEqual(r, True)
 
-        r = data.change_number(1, False)[0]
+        r = db.change_number(num1, True)
         self.assertEqual(r, True)
 
-        r = data.change_number(1, True)[0]
-        self.assertEqual(r, True)
+        docs = db.get_slave_docs(num1)
+        self.assertEqual(docs[0].id, 2)
 
-        self.assertEqual(data.id_doc_from_number(1), 1)
+        slaves = db.get_all_need_slave()
+        self.assertEqual(slaves[0][0].id, 2)
 
-        docs = data.get_slave_docs(1, 1)
-        self.assertEqual(docs[0], '2')
-
-        slaves = data.get_all_need_slave()
-        self.assertEqual(slaves[0][0], '2')
-
-        numbers = data.numbers_from_id_doc(1)
-        self.assertEqual(numbers, ['1', '2'])
+        numbers = db.numbers_from_doc(doc1)
+        self.assertEqual((numbers[0].id, numbers[1].id), (1, 2))
 
 
 # vi: ts=4

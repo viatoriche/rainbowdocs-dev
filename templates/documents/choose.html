@@ -2,6 +2,8 @@
     <p><b>Choose document:</b><br><select size="20" required name="id_doc">
     {% for doc in docs %}<option value="{{ doc.id }}">{{ doc.title }}</option>
     {% endfor %}
-   </select></p>
-   <p><input type="submit" value="Create"></p>
+    </select></p>
+    {% if perms.main.add_number %}
+    <p><input type="submit" value="Create"></p>
+    {% endif %}
 </form>

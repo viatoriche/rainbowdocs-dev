@@ -1,11 +1,15 @@
-<b>Openchain system</b><br>
+<b>Openchain System</b><br>
 Links: 
-<a href="">Main</a>
-<a href="/documents/parse/">Get Print Forms</a>
-<a href="/tags/links/">Links doc-tags</a>
-<a href="/tags/show/">All tags</a>
-<a href="/chains/add/">Chains - Add</a>
+<a href="/">Main</a>
+{% if user.is_staff %}
+<a href="/support/">Support</a>
+{% endif %}
+{% if perms.main.add_number %}
 <a href="/documents/new/">Create new document</a>
+{% endif %}
+{% if perms.main.can_view_number %}
 <a href="/documents/show/">List of documents</a>
+{% endif %}
+{% if perms.main.can_view_number %}
 <a href="/chains/need/">Need create ({{ Need }})</a>
-<br>
+{% endif %}

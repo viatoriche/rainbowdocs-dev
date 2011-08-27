@@ -11,13 +11,16 @@
 from django.http import Http404
 from django.shortcuts import render_to_response, redirect
 from modules import auth_support, support
-from modules.database import Data
+from modules.database import DataBase
+from django.contrib.auth.decorators import permission_required
 
+@permission_required('main.can_view_chain', login_url='/login/')
+@permission_required('main.can_view_doc', login_url='/login/')
 def add(request):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
 
-    db = Data()
+    db = DataBase()
 
     if request.method == 'POST': # chains: 1-1 1-2 3-2 4-5
         try:
@@ -29,7 +32,8 @@ def add(request):
             try:
                 id_main = s_chain.split('-')[0]
                 id_slave = s_chain.split('-')[1]
-                db.add_chain(id_main, id_slave)
+                if request.user.has_perm('main.add_chain'):
+                    db.add_chain(db.doc.get(id = id_main), db.doc.get(id = id_slave))
             except:
                 pass
 
@@ -41,25 +45,28 @@ def add(request):
         return render_to_response('index.html', data)
 
 
+@permission_required('main.can_view_number', login_url='/login/')
 def need(request):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
 
-    db = Data()
+    db = DataBase()
+
+    docs = db.get_all_need_slave(request.user)
 
     data['content'] = 'chains/need.html'
-    data['need_docs'] = db.get_all_need_slave()
+    data['need_docs'] = docs
 
     return render_to_response('index.html', data)
 
-
+@permission_required('main.can_view_chain', login_url='/login/')
 def addcheck(request, id_main = 0, id_slave = 0):
     auth_this = auth_support.auth_user(request)
     if not auth_this: return support.auth_error()
 
     if id_main == 0 or id_slave == 0: raise Http404
 
-    db = Data()
+    db = DataBase()
 
     data = {
         'check': db.check_add_chain(id_main, id_slave)

@@ -2,8 +2,31 @@
 <b>Number: {{ Number }}</b><br>
 <b>Date: {{ Date }}</b><br>
 {% if held_status %}<b>Helded: {{ Date_Held }}</b><br>
-{% else %}<a href="/documents/held/{{ Number }}/">Held</a><br>{% endif %}
-{% for s in showthis %}{% if not held_status%}<form action="{{ req_url }}" method="post"><input type="hidden" name="do" value="del_tag">{% endif %}{{ s.0 }}: {{ s.1}}{% if not held_status %}<input type="hidden" name="id_tag" value="{{ s.2 }}"><input type="submit" value="Delete"></form>{% else %}<br>{% endif %}{% endfor %}
-{% if not held_status %}<br><a href="/documents/edit/{{ Number }}/">Edit</a><br><form method="post" action="{{ req_url }}"><input type="hidden" name="do" value="del_number"><input type="submit" value="Delete this document"></form>{% endif %}<br>
+{% else %}{% if perms.main.change_number %}
+<a href="/documents/held/{{ Number }}/">Held</a><br>
+{% endif %}
+{% endif %}
+{% for s in showthis %}
+{% if not held_status and perms.main.delete_data %}
+<form action="{{ req_url }}" method="post"><input type="hidden" name="do" value="del_tag">
+{% endif %}
+{{ s.tag.description }}: {{ s.tag_value}}
+{% if not held_status and perms.main.delete_data %}
+<input type="hidden" name="id_tag" value="{{ s.tag.id }}">
+<input type="submit" value="Delete">
+</form>
+{% else %}<br>
+{% endif %}
+{% endfor %}
+{% if not held_status %}<br>
+{% if perms.main.change_data and perms.main.change_number %}
+<a href="/documents/edit/{{ Number }}/">Edit</a>
+{% endif %}<br>
+{% if perms.main.delete_number %}
+<form method="post" action="{{ req_url }}">
+    <input type="hidden" name="do" value="del_number"><input type="submit" value="Delete this document">
+</form>
+{% endif %}
+{% endif %}<br>
 <a href="/documents/odt/{{ Number }}/">Download odt</a><br>
-<b>Template: {{ template }}</b><br>
+<b>Template: {{ template }}</b>
