@@ -18,7 +18,7 @@ urlpatterns = patterns('',
     url(r'^documents/show/(\d+)/$', documents.show), # id_doc, number of master == 0
     url(r'^documents/edit/(\d+)/$', documents.edit), # id_doc, number of master == 0
     url(r'^documents/held/(\d+)/$', documents.held), # id_doc, number of master == 0
-    url(r'^documents/odt/(\d+)/$', documents.odt), # id_doc, number of master == 0
+    url(r'^documents/odf/(\d+)/$', documents.odf), # id_doc, number of master == 0
     url(r'^documents/perm_error/$', documents.perm_error),
     url(r'^chains/addcheck/(\d+)/(\d+)/$', chains.addcheck),
     url(r'^chains/add/$', chains.add),

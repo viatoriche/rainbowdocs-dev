@@ -23,19 +23,45 @@ def add(request):
     db = DataBase()
 
     if request.method == 'POST': # chains: 1-1 1-2 3-2 4-5
+        do = ''
         try:
-            chains = request.POST['chains']
-        except:
-            return redirect('/chains/add/')
-        s_chains = chains.split(' ')
-        for s_chain in s_chains:
+            request.POST['save']
+            do = 'save'
+        except KeyError:
+            do = ''
+
+        if do == '':
             try:
-                id_main = s_chain.split('-')[0]
-                id_slave = s_chain.split('-')[1]
-                if request.user.has_perm('main.add_chain'):
-                    db.add_chain(db.doc.get(id = id_main), db.doc.get(id = id_slave))
-            except:
-                pass
+                request.POST['delete']
+                do = 'delete'
+            except KeyError:
+                return redirect('/chains/add/')
+
+        if do == 'save':
+            try:
+                chains = request.POST['chains']
+                print chains
+            except KeyError:
+                return redirect('/chains/add/')
+
+            s_chains = chains.split(' ')
+            for s_chain in s_chains:
+                try:
+                    id_main = s_chain.split('-')[0]
+                    id_slave = s_chain.split('-')[1]
+                    if request.user.has_perm('main.add_chain'):
+                        db.add_chain(db.doc.get(id = id_main), db.doc.get(id = id_slave))
+                except:
+                    pass
+
+        if do == 'delete':
+            try:
+                chain_id = request.POST['chain_id']
+            except KeyError:
+                return redirect('/chains/add/')
+
+            if request.user.has_perm('main.delete_chain'):
+                db.chain.get(id = chain_id).delete()
 
         return redirect('/chains/add/')
     else:

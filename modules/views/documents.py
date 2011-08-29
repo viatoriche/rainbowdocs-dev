@@ -24,7 +24,7 @@ def perm_error(request):
     return render_to_response('index.html', data)
 
 @permission_required('main.can_view_number', login_url='/login/')
-def odt(request, num = '0'):
+def odf(request, num = '0'):
     data = support.default_answer_data(request)
     if not data['auth']: return support.auth_error()
 
@@ -35,10 +35,12 @@ def odt(request, num = '0'):
 
     static_dir = u'{0}/forms/'.format(settings.STATICFILES_DIRS[0])
     static_url = settings.STATIC_URL
-    destfile = u'{0}.odt'.format(num)
 
     doc_num = db.number.get(id = num)
     doc = doc_num.doc
+
+    #destfile = '{1} - {0}'.format(str(doc.print_form), num)
+    destfile = str(num) + ' - ' + doc.print_form
 
     if not support.check_doc_perm(request, doc):
         return support.perm_error()
@@ -232,8 +234,8 @@ def show(request, num = '0'):
                     return support.perm_error()
 
                 return redirect('/documents/held/{0}/'.format(number))
-            elif request.POST['do'] == 'ODT':
-                return redirect('/documents/odt/{0}/'.format(number))
+            elif request.POST['do'] == 'ODF':
+                return redirect('/documents/odf/{0}/'.format(number))
 
         nums = db.number.all()
         data['numbers'] = nums

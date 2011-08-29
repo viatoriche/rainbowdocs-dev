@@ -19,7 +19,9 @@ class WebTest(TestCase):
     def setUp(self):
         # Every test needs a client.
         self.client = Client()
-        auth.models.User.objects.create_user('test', 'test@test.ru', 'nya')
+        self.user = auth.models.User.objects.create_user('test', 'test@test.ru', 'nya')
+        self.user.is_superuser = True
+        self.user.save()
 
     def testBasic(self):
         db = DataBase()
@@ -110,11 +112,11 @@ class WebTest(TestCase):
         self.assertContains(response, '<a href="/documents/new/2/1/">JOPA0 → JOPA1</a><br>')
 
         response = self.client.get('/chains/add/')
-        self.assertContains(response, '<input type="text" name="chains" value="1-1 1-2 ">')
+        self.assertContains(response, '<b>Current Chains:</b><br> 1 JOPA0 → 1 JOPA0<br>1 JOPA0 → 2 JOPA1<br><br>')
 
         response = self.client.post('/chains/add/', {'chains': '2-1'})
         response = self.client.get('/chains/add/')
-        self.assertContains(response, '<input type="text" name="chains" value="1-1 1-2 2-1 ">')
+        self.assertContains(response, '<b>Current Chains:</b><br> 1 JOPA0 → 1 JOPA0<br>1 JOPA0 → 2 JOPA1<br>2 JOPA1 → 1 JOPA0<br><br>')
 
         # logout
         response = self.client.post('', {'logout': 'logout'} )
@@ -127,6 +129,8 @@ class DBTest(TestCase):
     def setUp(self):
         # Every test needs a client.
         self.user = auth.models.User.objects.create_user('test', 'test@test.ru', 'nya')
+        self.user.is_superuser = True
+        self.user.save()
 
     def testBasic(self):
         db = DataBase()
@@ -194,11 +198,35 @@ class DBTest(TestCase):
         docs = db.get_slave_docs(num1)
         self.assertEqual(docs[0].id, 2)
 
-        slaves = db.get_all_need_slave()
+        slaves = db.get_all_need_slave(self.user)
         self.assertEqual(slaves[0][0].id, 2)
 
         numbers = db.numbers_from_doc(doc1)
         self.assertEqual((numbers[0].id, numbers[1].id), (1, 2))
 
+        # Test doc permissions
+        self.user1 = auth.models.User.objects.create_user('user1', 'user1@example.com', 'user1')
+        self.group1 = auth.models.Group.objects.create()
+        self.group1.name = 'group1'
+        self.group1.save()
+
+        self.assertEqual(db.check_user_perm(self.user1, doc1, False), False)
+
+        db.add_user_perm(self.user1, doc1, False)
+        self.assertEqual(db.check_user_perm(self.user1, doc1, False), True)
+        self.assertEqual(db.check_user_perm(self.user1, doc1, True), False)
+        db.add_user_perm(self.user1, doc2, True)
+        self.assertEqual(db.check_user_perm(self.user1, doc2, True), True)
+        self.user1.groups.add(self.group1)
+        db.add_group_perm(self.group1, doc1, True)
+        self.assertEqual(db.check_group_perm(self.group1, doc1, True), True)
+
+        docs = db.doc.all()
+        db.add_group_perm(self.group1, doc3, False)
+        self.user.groups.add(self.group1)
+        docs_f = db.perm_doc_filter(self.user1, docs, False)
+        self.assertEqual(docs_f, [doc1, doc2, doc3])
+        docs_f = db.perm_doc_filter(self.user1, docs, True)
+        self.assertEqual(docs_f, [doc2, doc1])
 
 # vi: ts=4

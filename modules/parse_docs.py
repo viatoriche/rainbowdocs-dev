@@ -29,10 +29,10 @@ class Parser():
         return tags
 
     def get_title(self, txt):
-        try:
-            return re.search(r'{{\s*begin_title\s*}}(.+){{\s*end_title\s*}}', txt).group(1)
-        except:
-            return 'Unknown'
+        txt = re.sub(r'[\n\r]','',txt)
+        txt = re.sub(r'{{\s*end_title\s*}}', '{{ end_title }}\n', txt)
+        titles = re.findall(r'{{\s*begin_title\s*}}(.*){{\s*end_title\s*}}', txt)
+        return ' '.join(titles)
 
     def get_main(self, txt):
         try:
@@ -42,7 +42,7 @@ class Parser():
             return False
 
     def get_doc(self, filename):
-        return odf.load('{0}/{1}'.format(self.dir_printforms, filename))
+        return odf.load(self.dir_printforms +'/'+ filename)
 
     def create_form(self, printform, dest, number, date, date_held, tags, author = ''):
         doc = self.get_doc(printform)
@@ -61,16 +61,18 @@ class Parser():
         return True
 
     def scan(self):
-        odt_files = []
+        odf_files = []
         files = os.listdir(self.dir_printforms)
         for f in files:
-            if f.endswith('odt'): odt_files.append(f)
+            if f.endswith('ods'): odf_files.append(f)
+        for f in files:
+            if f.endswith('odt'): odf_files.append(f)
 
-        for odt in odt_files:
-            txt = self.get_doc(odt).toText()
+        for odf in odf_files:
+            txt = self.get_doc(odf).toText()
             tags = self.find_tags(txt)
             title = self.get_title(txt)
             main = self.get_main(txt)
-            yield (odt, title, tags, main)
+            yield (odf, title, tags, main)
 
 # vi: ts=4
