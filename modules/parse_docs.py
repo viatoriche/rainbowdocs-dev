@@ -56,7 +56,17 @@ class Parser():
         except odf.ReadError:
             raise odf.ReadError
 
-    def create_form(self, printform, type_odf, list_odf, dest, number, date, date_held, tags, author = ''):
+    def create_form(self,
+                    printform,
+                    type_odf,
+                    list_odf,
+                    dest,
+                    number,
+                    date,
+                    date_held,
+                    tags,
+                    author = ''):
+
         """create odf printform and dump to dest"""
         try:
             doc = self.get_doc(printform)
