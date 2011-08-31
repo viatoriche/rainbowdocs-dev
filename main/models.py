@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
+"""All main models"""
 
 from django.db import models
 from django.contrib.auth.models import User, Group
 
 class Doc(models.Model):
-    # All Documents with path to Print Forms (ODT)
+    """All Documents with path to Print Forms (ODT)"""
     print_form = models.CharField('Print Form', max_length = 1024)
     title = models.CharField('Title', max_length = 1024)
     main = models.BooleanField('Main')
@@ -18,9 +19,13 @@ class Doc(models.Model):
     def __unicode__(self):
         return u'{0} - {1} Main: {2}'.format(self.id, self.title, self.main)
 
-class Tag(models.Model): # All attributes (tags) for documents
-    name = models.CharField('Name', max_length = 1024) # name in Doc
-    description = models.CharField('Desc', max_length = 1024) # description - for interface
+class Tag(models.Model):
+    """All attributes (tags) for documents"""
+
+    # name in printform
+    name = models.CharField('Name', max_length = 1024)
+    # description - for interface
+    description = models.CharField('Desc', max_length = 1024)
 
     class Meta:
         verbose_name = "Tag"
@@ -31,9 +36,11 @@ class Tag(models.Model): # All attributes (tags) for documents
     def __unicode__(self):
         return u'{0} : {1}'.format(self.name, self.description)
 
-class Link(models.Model): # Doc - Tag
-    doc = models.ForeignKey(Doc, verbose_name = 'Doc') #
-    tag = models.ForeignKey(Tag, verbose_name = 'Tag') #
+class Link(models.Model): 
+    """Links = Doc - Tag"""
+
+    doc = models.ForeignKey(Doc, verbose_name = 'Doc')
+    tag = models.ForeignKey(Tag, verbose_name = 'Tag')
 
     class Meta:
         verbose_name = "Link"
@@ -44,14 +51,23 @@ class Link(models.Model): # Doc - Tag
     def __unicode__(self):
         return u'{0} - {1} [{2}]'.format(self.doc.title, self.tag.description, self.tag.name)
 
-class Number(models.Model): # Real documents of system
-    held_status = models.BooleanField('Held', default = False) # Status of held
-    date_held = models.DateTimeField('Helded', null = True, blank = True) # Date of held
-    date_create = models.DateTimeField('Created', auto_now_add=True, auto_now=False) # Date of create
-    date_change = models.DateTimeField('Changed', auto_now_add=True, auto_now=True) # Date of change
-    main_number = models.ForeignKey('self', blank = True, null = True, verbose_name = 'NumberMain') # 
-    doc = models.ForeignKey(Doc, verbose_name = 'Doc') # Doc ID → Doc.id
-    user = models.ForeignKey(User, verbose_name = 'Author') # User ID author
+class Number(models.Model):
+    """Real documents of system"""
+
+    # Status of held
+    held_status = models.BooleanField('Held', default = False)
+    # Date of held
+    date_held = models.DateTimeField('Helded', null = True, blank = True)
+    # Date of create
+    date_create = models.DateTimeField('Created', auto_now_add=True, auto_now=False)
+    # Date of change
+    date_change = models.DateTimeField('Changed', auto_now_add=True, auto_now=True)
+    # Self is slave of main_number
+    main_number = models.ForeignKey('self', blank = True, null = True, verbose_name = 'NumberMain')
+    # Printform and type of doc
+    doc = models.ForeignKey(Doc, verbose_name = 'Doc')
+    # Author of document
+    user = models.ForeignKey(User, verbose_name = 'Author')
 
     class Meta:
         verbose_name = "RealDoc"
@@ -62,10 +78,12 @@ class Number(models.Model): # Real documents of system
     def __unicode__(self):
         return u'{0}: Held={1} Author: {2}'.format(self.id, self.held_status, self.user.username)
 
-class Data(models.Model): # Data 
-    number = models.ForeignKey(Number, verbose_name = 'Number') # Number
-    tag = models.ForeignKey(Tag, verbose_name = 'Tag') # Tag
-    tag_value = models.TextField('Value') # Data :3
+class Data(models.Model):
+    """Data for numbers"""
+
+    number = models.ForeignKey(Number, verbose_name = 'Number')
+    tag = models.ForeignKey(Tag, verbose_name = 'Tag')
+    tag_value = models.TextField('Value')
 
     class Meta:
         verbose_name = "Data"
@@ -79,9 +97,12 @@ class Data(models.Model): # Data
 
 
 class Chain(models.Model):
-    # Chain of documents
-    main_doc = models.ForeignKey(Doc, related_name="main_doc", verbose_name = 'Main') # Main document ID → Doc.id
-    slave_doc = models.ForeignKey(Doc, related_name="slave_doc", verbose_name = 'Slave') # Slave document ID → Doc.id
+    """Chain of documents"""
+
+    # Main document
+    main_doc = models.ForeignKey(Doc, related_name="main_doc", verbose_name = 'Main')
+    # Slave document
+    slave_doc = models.ForeignKey(Doc, related_name="slave_doc", verbose_name = 'Slave')
 
     class Meta:
         verbose_name = "Chain"
@@ -93,9 +114,11 @@ class Chain(models.Model):
         return u'{0} → {1}'.format(self.main_doc.title, self.slave_doc.title)
 
 class User_perms(models.Model):
-    # User permissions for Doc
+    """User permissions for Doc"""
+
     doc = models.ForeignKey(Doc, verbose_name = 'Doc')
-    user = models.ForeignKey(User, verbose_name = 'User') # User ID author
+    user = models.ForeignKey(User, verbose_name = 'User')
+    # if write - can write, else read only
     write = models.BooleanField('Write', default = False)
 
     class Meta:
@@ -105,9 +128,11 @@ class User_perms(models.Model):
         return u'{0} = {1} Write: {2}'.format(self.user.username, self.doc.title, self.write)
 
 class Group_perms(models.Model):
-    # User permissions for Doc
+    """Group permissions for Doc"""
+
     doc = models.ForeignKey(Doc, verbose_name = 'Doc')
     group = models.ForeignKey(Group, verbose_name = 'Group') # User ID author
+    # if write - can write, else read only
     write = models.BooleanField('Write', default = False)
 
     class Meta:

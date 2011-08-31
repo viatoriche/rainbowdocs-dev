@@ -1,21 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# File name:    support.py
 # Author:       Viator (viator@via-net.org)
 # License:      GPL (see http://www.gnu.org/licenses/gpl.txt)
-# Created:      2011-08-26
-# Description:
-# TODO:
+"""Support Page"""
 
-from django.shortcuts import render_to_response, redirect
+from django.shortcuts import render_to_response
 from modules import support
 
 def main(request):
+    """Return support page"""
     data = support.default_answer_data(request)
-
-    if not request.user.is_staff:
-        return redirect('/login/?next=/support/')
 
     data['content'] = 'support.html'
 

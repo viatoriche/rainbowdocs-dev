@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# File name:    admin.py
 # Author:       Viator (viator@via-net.org)
 # License:      GPL (see http://www.gnu.org/licenses/gpl.txt)
-# Created:      2011-08-15
-# Description:
-# TODO:
+"""Admin module"""
 
-from django.contrib import admin
+#from django.contrib import admin
 #from main.models import Chain, Doc, Tag, Data, Link, Number, User_perms, Group_perms
 
 #admin.site.register(Chain)

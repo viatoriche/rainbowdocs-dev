@@ -1,9 +1,7 @@
 <b>Openchain System</b><br>
 Links: 
 <a href="/">Main</a>
-{% if user.is_staff %}
 <a href="/support/">Support</a>
-{% endif %}
 {% if perms.main.add_number %}
 <a href="/documents/new/">Create new document</a>
 {% endif %}
