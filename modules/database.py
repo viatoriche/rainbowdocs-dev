@@ -127,19 +127,21 @@ class DataBase:
         return docs
 
     # Tested
-    def add_doc(self, print_form, title, main = False):
+    def add_doc(self, print_form, title, type_odf, ods_list, main = False):
         """Add Doc method, return doc"""
 
         try:
             # Change
-            doc = self.doc.get(print_form = print_form)
+            doc = self.doc.get(print_form = print_form, ods_list = ods_list)
             doc.title = title
             doc.main = main
             doc.save()
         except ObjectDoesNotExist:
             # Add new
             doc = self.doc.create(print_form = print_form,
-                                  title = title, 
+                                  title = title,
+                                  type_odf = type_odf,
+                                  ods_list = ods_list,
                                   main = main)
 
         return doc

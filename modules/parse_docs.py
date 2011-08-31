@@ -5,9 +5,11 @@
 # License:      GPL (see http://www.gnu.org/licenses/gpl.txt)
 """Module parser for printforms - ODF"""
 
-from modules.odftools import odf
+from modules.odftools import odf, document
 import os
 import re
+from copy import copy
+import xml.dom.minidom as dom
 
 class Parser():
     """Class: Parser ODF files"""
@@ -54,12 +56,22 @@ class Parser():
         except odf.ReadError:
             raise odf.ReadError
 
-    def create_form(self, printform, dest, number, date, date_held, tags, author = ''):
+    def create_form(self, printform, type_odf, list_odf, dest, number, date, date_held, tags, author = ''):
         """create odf printform and dump to dest"""
         try:
             doc = self.get_doc(printform)
         except odf.ReadError:
             return False
+
+        if type_odf == 'ods':
+            lists = []
+            for content in self.ods_get_content(printform):
+                lists.append(content)
+
+            content = lists[list_odf]
+            content = content.encode('UTF-8')
+            doc.content = dom.parseString(content)
+
 
         doc.replace(r'{{\s*main\s*}}', '')
         doc.replace(r'{{\s*author\s*}}', author)
@@ -75,6 +87,28 @@ class Parser():
         odf.dump(doc, dest)
         return True
 
+    def xml_to_text(self, xml):
+        """Get textdata from xml"""
+        return '\n'.join([node.data for node in document.doc_order_iter(xml)
+                    if node.nodeType == node.TEXT_NODE])
+
+
+    def ods_get_content(self, odf_file):
+        """Split ods to lists"""
+
+        ods_doc = self.get_doc(odf_file)
+        content = ods_doc.toXml().replace('<table:table table:name=',
+                            '_SPLIT_TABLE_HERE_<table:table table:name=')
+        content = content.split('_SPLIT_TABLE_HERE_')
+        begin_content = content[0]
+        end_content = u'</office:spreadsheet></office:body></office:document-content>'
+        content = content[1:]
+        end_num = len(content)-1
+        content[end_num] = content[end_num].replace(
+                    u'</office:spreadsheet></office:body></office:document-content>', '')
+        for data in content:
+            yield begin_content+data+end_content
+
     def scan(self):
         """scan printform dir for parse odf_file-docs
         ext: ods, odt
@@ -89,10 +123,29 @@ class Parser():
                 odf_files.append(getfile)
 
         for odf_file in odf_files:
-            txt = self.get_doc(odf_file).toText()
-            tags = self.find_tags(txt)
-            title = self.get_title(txt)
-            main = self.get_main(txt)
-            yield (odf_file, title, tags, main)
+            if odf_file.endswith('odt'):
+                txt = self.get_doc(odf_file).toText()
+
+                tags = self.find_tags(txt)
+                title = self.get_title(txt)
+                main = self.get_main(txt)
+                type_odf = 'odt'
+                ods_list = 0
+                yield (odf_file, title, tags, main, type_odf, ods_list)
+            elif odf_file.endswith('ods'):
+                for odf_list, content in enumerate(self.ods_get_content(odf_file)):
+                    content = content.encode('UTF-8')
+                    xml = dom.parseString(content)
+                    txt = self.xml_to_text(xml)
+
+                    title = self.get_title(txt)
+                    if title == '':
+                        continue
+
+                    tags = self.find_tags(txt)
+                    main = self.get_main(txt)
+                    type_odf = 'ods'
+                    yield (odf_file, title, tags, main, type_odf, odf_list)
+
 
 # vi: ts=4
