@@ -69,6 +69,8 @@ def odf(request, num = '0'):
 
     if parser.create_form(
             sourcefile,
+            doc.type_odf,
+            int(doc.ods_list),
             u'{0}{1}'.format(static_dir, destfile),
             num,
             date,
@@ -92,8 +94,8 @@ def parse(request):
 
     parser = parse_docs.Parser(settings.PRINT_FORMS_DIR)
     scanned = []
-    for path_pf, title_pf, new_tags, main_pf in parser.scan():
-        doc = database.add_doc(path_pf, title_pf, main_pf)
+    for path_pf, title_pf, new_tags, main_pf, type_odf, odf_list in parser.scan():
+        doc = database.add_doc(path_pf, title_pf, type_odf, odf_list, main_pf)
         doc_links = database.link.filter(doc = doc)
         tags = []
         test_tags = []

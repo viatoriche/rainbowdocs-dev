@@ -33,9 +33,9 @@ class WebTest(TestCase):
         self.assertEqual(login, True)
         self.assertContains(response, 'logout')
 
-        doc1 = database.add_doc('jopa0.odt', 'JOPA0', True)
-        doc2 = database.add_doc('jopa1.odt', 'JOPA1', True)
-        database.add_doc('jopa2.odt', 'JOPA2', False)
+        doc1 = database.add_doc('jopa0.odt', 'JOPA0', 'odt', 0, True)
+        doc2 = database.add_doc('jopa1.odt', 'JOPA1', 'odt', 0, True)
+        database.add_doc('jopa2.odt', 'JOPA2', 'odt', 0, False)
 
         response = self.client.get('/documents/all/')
         self.assertEqual(response.status_code, 200)
@@ -189,15 +189,15 @@ class DBTest(TestCase):
     def testBasic(self):
         database = DataBase()
 
-        doc1 = database.add_doc('jopa.odt', 'JOPA', True)
-        doc1 = database.add_doc('jopa.odt', 'JOPA1', True)
+        doc1 = database.add_doc('jopa.odt', 'JOPA', 'odt', 0, True)
+        doc1 = database.add_doc('jopa.odt', 'JOPA1', 'odt', 0, True)
         self.assertEqual(doc1.id, 1)
         self.assertEqual(doc1.title, 'JOPA1')
 
-        doc2 = database.add_doc('jopa2.odt', 'JOPA2', False)
+        doc2 = database.add_doc('jopa2.odt', 'JOPA2', 'odt', 0, False)
         self.assertEqual(doc2.id, 2)
 
-        doc3 = database.add_doc('jopa3.odt', 'JOPA3', False)
+        doc3 = database.add_doc('jopa3.odt', 'JOPA3', 'odt', 0, False)
         self.assertEqual(doc3.id, 3)
 
         tag1 = database.add_tag('FIO', 'Name and Surname')

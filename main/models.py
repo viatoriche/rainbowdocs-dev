@@ -4,11 +4,19 @@
 from django.db import models
 from django.contrib.auth.models import User, Group
 
+ODF_CHOICES = (
+    ('ods', 'ods'),
+    ('odt', 'odt'),
+)
+
 class Doc(models.Model):
     """All Documents with path to Print Forms (ODT)"""
     print_form = models.CharField('Print Form', max_length = 1024)
     title = models.CharField('Title', max_length = 1024)
     main = models.BooleanField('Main')
+    # ods, odf
+    type_odf = models.CharField('Type of ODF', max_length = 3, choices = ODF_CHOICES)
+    ods_list = models.IntegerField('ODS List')
 
     class Meta:
         verbose_name = "Doc"
