@@ -1,25 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# File name:    support.py
 # Author:       Viator (viator@via-net.org)
 # License:      GPL (see http://www.gnu.org/licenses/gpl.txt)
-# Created:      2011-08-19
-# Description:
-# TODO:
+"""Support functions"""
 
 from django.shortcuts import redirect
 import config
 from modules import auth_support
-from modules.database import DataBase as Data
+from modules.database import DataBase
 from django.template import RequestContext
 
 def default_answer_data(request):
-    db = Data()
+    """Generate default data for views"""
+
+    databse = DataBase()
     auth_this = auth_support.auth_user(request)
 
     if auth_this:
-        need = len(db.get_all_need_slave(request.user))
+        need = len(databse.get_all_need_slave(request.user))
     else:
         need = 0
 
@@ -31,26 +30,35 @@ def default_answer_data(request):
         })
 
 def auth_error():
+    """redirect to login page"""
     return redirect('/login/')
 
 def perm_error():
+    """redirect to perms error page"""
     return redirect('/documents/perm_error/')
 
 def check_doc_perm(request, doc, write = False):
-    db = Data()
+    """Return True, if ok perms for doc"""
+
+    database = DataBase()
 
     user = request.user
 
-    if user.is_superuser: return True
-
-    if db.check_user_perm(doc = doc, user = user, write = write):
+    # True if superuser
+    if user.is_superuser:
         return True
 
+    # True if user ok
+    if database.check_user_perm(doc = doc, user = user, write = write):
+        return True
+
+    # Else check groups perms, and true if ok
     groups = request.user.groups
     for group in groups.all():
-        if db.check_group_perm(doc = doc, group = group, write = write):
+        if database.check_group_perm(doc = doc, group = group, write = write):
             return True
 
+    # Else - False
     return False
 
 # vi: ts=4
