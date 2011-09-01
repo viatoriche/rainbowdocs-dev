@@ -11,6 +11,7 @@ from main.models import Doc, Tag, Data, Link, Chain, Number
 from main.models import User_perms, Group_perms
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ObjectDoesNotExist
+from modules import parse_docs
 
 class DataBase:
     """Class: DataBase
@@ -301,44 +302,145 @@ class DataBase:
             return False
 
     # Tested
-    def add_data(self, number, tag, tag_value):
+    def add_data(self, number, tag_name, tag_value):
         """Add data for number, return True if ok"""
 
         try:
             # Can add only new data
-            self.data.get(number = number, tag = tag)
+            self.data.get(number = number, tag_name = tag_name)
             return False
         except ObjectDoesNotExist:
-            # Create
-            self.data.create(number = number,
-                             tag = tag,
-                             tag_value = tag_value)
-            return True
+            pass
+        else:
+            return False
+
+        self.data.create(number = number,
+                         tag_name = tag_name,
+                         tag_value = tag_value)
+        return True
+
+    def modify_cycle_tags(self, number, tag_name, count):
+        """Decrement num tags, if >= count
+
+        Input:
+            number - Number
+            tag_name - cycle_template
+            count - count of rows in table
+        """
+        for data in self.data.filter(number = number):
+            if parse_docs.check_cycle(data.tag_name):
+                if parse_docs.get_template_from_tagname(
+                        data.tag_name) == tag_name:
+                    num = parse_docs.get_num_from_tag_with_num(
+                                        data.tag_name)
+                    if int(num) >= count:
+                        num = str(int(num)-1)
+                        data.tag_name = parse_docs.get_tagname_from_tag_with_num(
+                            data.tag_name) + '_' + num
+                        data.save()
 
     # Tested
-    def del_tag_from_datadoc(self, number, tag):
+    def del_tag_from_datadoc(self, number, tag_name, row = '-1'):
         """Del one tag, from data of number, return True if ok"""
 
         try:
             # Test and change number (for date - change)
             if self.change_number(number = number):
                 # if can change - delete
-                self.data.get(number = number, tag = tag).delete()
+                if parse_docs.check_cycle_template(tag_name):
+                    for data in self.data.filter(number = number):
+                        if parse_docs.check_cycle(data.tag_name):
+                            if parse_docs.get_template_from_tagname(
+                                    data.tag_name) == tag_name:
+                                if row != '-1' and parse_docs.get_num_from_tag_with_num(
+                                        data.tag_name) == row:
+                                    data.delete()
+                                elif row == '-1':
+                                    data.delete()
+
+                    table = self.data.get(number = number,
+                                          tag_name = tag_name)
+
+                    if row == '-1':
+                        table.tag_value = 0
+
+                    table.tag_value = str(int(table.tag_value)-1)
+                    if table.tag_value == '-1':
+                        table.delete()
+                    else:
+                        table.save()
+                        self.modify_cycle_tags(number,
+                                               tag_name,
+                                               int(row))
+
+                else:
+                    self.data.get(number = number, 
+                                  tag_name = tag_name).delete()
+
                 return True
             else:
                 return False
         except ObjectDoesNotExist:
             return False
 
+    def get_all_datatags(self, number):
+        """Get all data Tags from document_number
+
+        Input:
+            number - main.Number
+        Output:
+            list of dict
+                tag_name - text
+                tag_value - text
+                tag_description - (Template.desc +num+ |+ desc if cycle)
+                cycle - True/False
+                cycle_template - True/False
+                tag_id
+        """
+        data_tags = self.data.filter(number = number)
+        out = []
+        for data_tag in data_tags:
+            tag_name = data_tag.tag_name
+            tag_value = data_tag.tag_value
+            cycle = parse_docs.check_cycle(tag_name)
+            cycle_template = parse_docs.check_cycle_template(tag_name)
+            if cycle:
+                name = parse_docs.get_tagname_from_tag_with_num(tag_name)
+                tag = self.tag.get(name = name)
+                template = parse_docs.get_template_from_tagname(name)
+                tag_template = self.tag.get(name = template)
+                num = parse_docs.get_num_from_tag_with_num(tag_name)
+                tag_description = tag_template.description +' '+str(
+                                  int(num)+1)+ ' |' + tag.description
+                tag_id = tag.id
+            else:
+                tag = self.tag.get(name = tag_name)
+                if cycle_template:
+                    tag_value = str(int(tag_value)+1)
+
+                tag_description = tag.description
+                tag_id = tag.id
+
+            out.append({
+                'tag_name': tag_name,
+                'tag_value': tag_value,
+                'tag_description': tag_description,
+                'cycle': cycle,
+                'cycle_template': cycle_template,
+                'tag_id': tag_id
+                })
+
+        return out
+
     # Tested
-    def change_data(self, number, tag, tag_value):
+    def change_data(self, number, tag_name, tag_value):
         """Change data of number, return data of None"""
 
         try:
             # Test and change number (for date - change)
             if self.change_number(number = number):
                 # if can change - change
-                data = self.data.get(number = number, tag = tag)
+                data = self.data.get(number = number, tag_name = tag_name)
                 data.tag_value = tag_value
                 data.save()
                 return data
@@ -397,7 +499,7 @@ class DataBase:
     def numbers_from_tag(self, tag):
         """get all numbers, where this tag"""
 
-        docs = self.data.filter(tag = tag)
+        docs = self.data.filter(tag_name = tag.name)
         out = []
         for doc in docs:
             if doc.number not in out:

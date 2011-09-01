@@ -1,15 +1,21 @@
 <b>Number: {{ Number }}</b><br>
 <b>Document: {{ Title_Doc }}</b><br>
 <b>Date: {{ Date }}</b><br>
+<b>Author: {{ Author }}</b><br>
 {% if held_status %}<b>Helded - Date: {{ date_held }}<br></b>
 {% else %}
 Change data:<br>
 <form action='{{ req_url }}' method="post" >
-				{% for data in showthis %}{{ data.tag.description }}: <input type="text" name="{{ data.tag.id }}" value="{{ data.tag_value }}"><br>{% endfor %}<br>
-		{% if perms.main.change_number and perms.main.change_data %}
-    <input type="hidden" name="do" value="change">
+    {% for data in showthis %}
+    {% if not data.cycle_template %}
+        {{ data.tag_description }}: <input type="text" name="{{ data.tag_name }}" value="{{ data.tag_value }}">
+        <br>
+    {% endif %}
+    {% endfor %}<br>
+	{% if perms.main.change_number and perms.main.change_data %}
+        <input type="hidden" name="do" value="change">
 		<input type="submit" value="Change">
-		{% endif %}
+	{% endif %}
 </form>
 {% if all_tags|length > 0 and perms.main.add_data %}
 Add new tag:<br>

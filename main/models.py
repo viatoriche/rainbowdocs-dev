@@ -42,9 +42,9 @@ class Tag(models.Model):
         )
 
     def __unicode__(self):
-        return u'{0} : {1}'.format(self.name, self.description)
+        return u'{0} : {1} Cycle: {2}'.format(self.name, self.description, self.cycle)
 
-class Link(models.Model): 
+class Link(models.Model):
     """Links = Doc - Tag"""
 
     doc = models.ForeignKey(Doc, verbose_name = 'Doc')
@@ -90,7 +90,7 @@ class Data(models.Model):
     """Data for numbers"""
 
     number = models.ForeignKey(Number, verbose_name = 'Number')
-    tag = models.ForeignKey(Tag, verbose_name = 'Tag')
+    tag_name = models.CharField('Name', max_length = 1024)
     tag_value = models.TextField('Value')
 
     class Meta:

@@ -59,9 +59,13 @@ def odf(request, num = '0'):
         date_held = ''
 
     tags = {}
+    tags_cycle = []
     doc_data = database.data.filter(number = doc_num)
     for datadoc in doc_data:
-        tags[u'{0}'.format(datadoc.tag.name)] = datadoc.tag_value
+        if not parse_docs.check_cycle_template(datadoc.tag_name):
+            tags[u'{0}'.format(datadoc.tag_name)] = datadoc.tag_value
+        else:
+            tags_cycle.append( (datadoc.tag_name, int(datadoc.tag_value)+1) )
 
     author = doc_num.user.get_full_name()
     if author == '':
@@ -76,6 +80,7 @@ def odf(request, num = '0'):
             date,
             date_held,
             tags,
+            tags_cycle,
             author):
         return redirect(u'{0}forms/{1}'.format(static_url, destfile))
     else:
@@ -106,6 +111,7 @@ def parse(request):
                 database.link.get(doc = doc, tag = tag)
             except ObjectDoesNotExist:
                 tags.append( (tag_name, tag_desc) )
+
             database_tag = database.add_tag(tag_name, tag_desc)
             database.add_link(doc, database_tag)
         delete_tags = []
@@ -185,23 +191,73 @@ def edit(request, num = '0'):
                     continue
 
                 if request.user.has_perm('main.change_data'):
-                    database.change_data(number = num, 
-                                         tag = database.tag.get(id = tag), 
-                                         tag_value = request.POST[tag])
+                    tag_value = request.POST[tag]
+                    if parse_docs.check_cycle_template(tag):
+                        tag_value = str(int(tag_value))
 
-            return redirect('/documents/show/{0}/'.format(num.id))
+                    database.change_data(number = num,
+                                         tag_name = tag,
+                                         tag_value = tag_value)
+
+            return redirect('/documents/edit/{0}/'.format(num.id))
 
         if request.POST['do'] == 'add_tag':
             if request.user.has_perm(
                     'main.add_data') and request.user.has_perm(
                     'main.change_number'):
-                if database.add_data(
-                       number = num,
-                       tag = database.tag.get(id = request.POST['id_tag']),
-                       tag_value = request.POST['tag_value']):
-                    database.change_number(number = num)
+                cur_tag = database.tag.get(id = request.POST['id_tag'])
+                if parse_docs.check_cycle_template(cur_tag.name):
+                    cur_tag_value = request.POST['tag_value']
+                    try:
+                        count_add = int(cur_tag_value)
+                    except ValueError:
+                        count_add = 0
 
-    all_data = database.data.filter(number = num)
+                    if count_add != 0:
+                        tags = database.tag.all()
+                        add_tags = []
+                        for tag in tags:
+                            if parse_docs.check_cycle(tag.name):
+                                if parse_docs.get_template_from_tagname(
+                                        tag.name) == cur_tag.name:
+                                    add_tags.append(tag)
+
+                    for i in xrange(count_add):
+
+                        data_tags = database.get_all_datatags(num)
+                        table_num = '0'
+                        for data_tag in data_tags:
+                            if parse_docs.check_cycle_template(data_tag['tag_name']):
+                                if cur_tag.name == data_tag['tag_name']:
+                                    table_num = str(int(data_tag['tag_value']))
+                                    break
+
+                        for add_tag in add_tags:
+                            if database.add_data(
+                                    number = num,
+                                    tag_name = add_tag.name + '_' + table_num,
+                                    tag_value = ''
+                                    ):
+                                database.change_number(number = num)
+
+                        if table_num == '0':
+                            if database.add_data(
+                                    number = num,
+                                    tag_name = cur_tag.name,
+                                    tag_value = '0'):
+                                database.change_number(number = num)
+                        else:
+                            database.change_data(number = num,
+                                            tag_name = cur_tag.name,
+                                            tag_value = table_num)
+                else:
+                    if database.add_data(
+                           number = num,
+                           tag_name = cur_tag.name,
+                           tag_value = request.POST['tag_value']):
+                        database.change_number(number = num)
+
+    all_data = database.get_all_datatags(num)
     all_database_tags = database.tag.all()
     doc = num.doc
 
@@ -214,16 +270,21 @@ def edit(request, num = '0'):
     data['held_status'] = num.held_status
     if data['held_status']:
         data['date_held'] = num.date_held
+
     showthis = []
     test_tags = []
-    for d in all_data:
-        showthis.append(d)
-        test_tags.append(d.tag)
+    for data_tag in all_data:
+        showthis.append(data_tag)
+        test_tags.append(database.tag.get(id = data_tag['tag_id']))
 
     all_tags = []
     for tag in all_database_tags:
         if tag not in test_tags:
-            all_tags.append(tag)
+            if not parse_docs.check_cycle(tag.name):
+                all_tags.append(tag)
+        else:
+            if parse_docs.check_cycle_template(tag.name):
+                all_tags.append(tag)
 
     data['all_tags'] = all_tags
     data['showthis'] = showthis
@@ -282,12 +343,24 @@ def show(request, num = '0'):
             if not support.check_doc_perm(request, num.doc, True):
                 return support.perm_error()
 
-            id_tag = request.POST['id_tag']
+            tag_name = request.POST['tag_name']
             if request.user.has_perm(
                 'main.delete_data') and request.user.has_perm(
                 'main.change_number'):
-                database.del_tag_from_datadoc(num,
-                                              database.tag.get(id = id_tag))
+                if not parse_docs.check_cycle_template(tag_name):
+                    database.del_tag_from_datadoc(num,
+                                              tag_name)
+                else:
+                    try:
+                        row = int(request.POST['row'])-1
+                    except ValueError:
+                        raise Http404
+
+                    if row < -1:
+                        row = -1
+                    row = str(row)
+                    database.del_tag_from_datadoc(num,
+                                              tag_name, row)
 
         elif request.POST['do'] == 'del_number':
             if request.user.has_perm('main.delete_number'):
@@ -298,7 +371,8 @@ def show(request, num = '0'):
                     return redirect('/documents/show/')
 
 
-    all_data = database.data.filter(number = num)
+    all_data = database.get_all_datatags(num)
+
     doc = num.doc
 
     data['Title_Doc'] = doc.title
@@ -361,12 +435,12 @@ def new(request, id_doc = '0', id_num = '0'):
         if id_num == '0':
             if doc.main:
                 num = database.add_number(doc, user = request.user)
-                for tag in request.POST:
+                for tag_name in request.POST:
                     database.add_data(number = num,
-                                      tag = database.tag.get(id = tag),
-                                      tag_value = request.POST[tag])
+                                      tag_name = tag_name,
+                                      tag_value = request.POST[tag_name])
 
-                return redirect('/documents/show/{0}/'.format(num.id))
+                return redirect('/documents/edit/{0}/'.format(num.id))
             else:
                 raise Http404
         else:
@@ -377,12 +451,12 @@ def new(request, id_doc = '0', id_num = '0'):
                 num = database.add_number(doc = doc,
                                           user = request.user,
                                           main_number = main_num)
-                for tag in request.POST:
+                for tag_name in request.POST:
                     database.add_data(number = num, 
-                                      tag = database.tag.get(id = tag),
-                                      tag_value = request.POST[tag])
+                                      tag_name = tag_name,
+                                      tag_value = request.POST[tag_name])
 
-                return redirect('/documents/show/{0}/'.format(num.id))
+                return redirect('/documents/edit/{0}/'.format(num.id))
             else:
                 raise Http404
 
@@ -391,20 +465,39 @@ def new(request, id_doc = '0', id_num = '0'):
     cur_links = database.link.filter(doc = doc)
     tags = []
     for link in cur_links:
+        name = link.tag.name
+
+        cycle = parse_docs.check_cycle(name)
+        cycle_template = parse_docs.check_cycle_template(name)
+
+        if cycle:
+            name += '_0'
+
         if id_num != '0':
             num = database.number.get(id = id_num)
             try:
                 value = database.data.get(number = num,
-                                          tag = link.tag).tag_value
+                                          tag_name = link.tag.name).tag_value
             except ObjectDoesNotExist:
                 value = ''
 
-            tags.append({'id': link.tag.id, 
-                         'desc': link.tag.description, 
-                         'value': value})
+        if cycle_template:
+            value = '0'
         else:
-            tags.append({'id': link.tag.id, 
-                         'desc': link.tag.description, 'value': ''})
+            value = ''
+
+        desc = link.tag.description
+
+        if cycle:
+            desc = database.tag.get(
+                name = parse_docs.get_template_from_tagname(
+                   name)).description +' | '+ desc
+
+        tags.append({'name': name,
+                     'desc': desc,
+                     'value': value,
+                     'cycle': cycle,
+                     'cycle_template': cycle_template})
 
     data['tags'] = tags
     data['content'] = 'documents/new.html'

@@ -10,7 +10,7 @@ from django.test import TestCase
 from django.test.client import Client
 from django.contrib import auth
 from modules.database import DataBase
-
+import modules.parse_docs as parse_docs
 
 class WebTest(TestCase):
     """Test for URLS"""
@@ -85,9 +85,9 @@ class WebTest(TestCase):
         self.assertContains(response, 'tag1')
 
         response = self.client.post('/documents/new/1/', 
-                                    {tag1.id: 'nya1', 
-                                     tag2.id: 'nya2', 
-                                     tag3.id: 'nya3'})
+                                    {tag1.name: 'nya1', 
+                                     tag2.name: 'nya2', 
+                                     tag3.name: 'nya3'})
 
         self.assertEqual(response.status_code, 302)
 
@@ -101,9 +101,9 @@ class WebTest(TestCase):
 
         response = self.client.post('/documents/edit/1/',
                                    {'do': 'change',
-                                    tag1.id: 'nya1_e',
-                                    tag2.id: 'nya2_e',
-                                    tag3.id: 'nya3_e'})
+                                    tag1.name: 'nya1_e',
+                                    tag2.name: 'nya2_e',
+                                    tag3.name: 'nya3_e'})
 
         self.assertEqual(response.status_code, 302)
 
@@ -131,9 +131,9 @@ class WebTest(TestCase):
         response = self.client.get('/documents/new/1/1/')
         self.assertEqual(response.status_code, 200)
         response = self.client.post('/documents/new/1/1/', 
-                                    {'5': 'nya3_n',
-                                     '4': 'nya2_n',
-                                     '3': 'nya1_n'})
+                                    {tag3.name: 'nya3_n',
+                                     tag2.name: 'nya2_n',
+                                     tag1.name: 'nya1_n'})
         self.assertEqual(response.status_code, 302)
         response = self.client.get('/documents/show/2/')
         self.assertEqual(response.status_code, 200)
@@ -176,6 +176,23 @@ class WebTest(TestCase):
 
         response = self.client.get('/documents/all/')
         self.assertEqual(response.status_code, 302)
+
+class ParseTest(TestCase):
+    def testBasic(self):
+        self.assertEqual(parse_docs.check_cycle_template('cycle_line'), True)
+        self.assertEqual(parse_docs.check_cycle_template('cycle_Line'), True)
+        self.assertEqual(parse_docs.check_cycle_template('Cycle_Line'), False)
+        self.assertEqual(parse_docs.check_cycle_template('Cycle_Line'), False)
+        self.assertEqual(parse_docs.check_cycle_template('_tagname_'), False)
+
+        self.assertEqual(parse_docs.check_cycle('cycle_line_TagName_'), True)
+        self.assertEqual(parse_docs.check_cycle('_TagName_'), False)
+        self.assertEqual(parse_docs.check_cycle('cycle_line_'), False)
+        self.assertEqual(parse_docs.check_cycle('cycle_line'), False)
+
+        self.assertEqual(parse_docs.get_template_from_tagname('cycle_line_tagname'), 'cycle_line')
+        self.assertEqual(parse_docs.get_tagname_from_tag_with_num('cycle_line_tagname_13'), 'cycle_line_tagname')
+        self.assertEqual(parse_docs.get_num_from_tag_with_num('cycle_line_tagname_13'), '13')
 
 class DBTest(TestCase):
     """Test of database functions"""
@@ -246,21 +263,21 @@ class DBTest(TestCase):
         database.change_number(num3, True)
         self.assertEqual(database.del_number(num3), False)
 
-        data1 = database.add_data(num1, tag1, 'gggg')
+        data1 = database.add_data(num1, tag1.name, 'gggg')
         self.assertEqual(data1, True)
 
-        data2 = database.add_data(num1, tag1, 'hhhh')
+        data2 = database.add_data(num1, tag1.name, 'hhhh')
         self.assertEqual(data2, False)
 
-        data2 = database.add_data(num2, tag1, 'hhhh')
+        data2 = database.add_data(num2, tag1.name, 'hhhh')
         self.assertEqual(data2, True)
 
-        database.add_data(num2, tag1, 'tag1')
-        self.assertEqual(database.del_tag_from_datadoc(num2, tag1), True)
+        database.add_data(num2, tag1.name, 'tag1')
+        self.assertEqual(database.del_tag_from_datadoc(num2, tag1.name), True)
 
         database.numbers_from_doc(doc1)
 
-        data1 = database.change_data(num1, tag1, 'lololo')
+        data1 = database.change_data(num1, tag1.name, 'lololo')
         self.assertEqual(data1.tag_value, 'lololo')
 
         r = database.change_number(num1, False)

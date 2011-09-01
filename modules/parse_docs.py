@@ -50,11 +50,13 @@ class Parser():
             return False
 
     def get_doc(self, filename):
-        """get odf.doc from filename"""
-        try:
-            return odf.load(self.dir_printforms +'/'+ filename)
-        except odf.ReadError:
-            raise odf.ReadError
+        """return parse_docs.get_doc() with dir_printforms"""
+        return get_doc(self.dir_printforms +'/'+ filename)
+
+    def ods_split_by_table(self, filename):
+        """return parse_docs.ods_split_by_table() wirh dir_printforms"""
+        return ods_split_by_table(self.dir_printforms +'/'+ filename)
+
 
     def create_form(self,
                     printform,
@@ -65,6 +67,8 @@ class Parser():
                     date,
                     date_held,
                     tags,
+                    # Templates for clone (tagname, count)
+                    tags_cycle,
                     author = ''):
 
         """create odf printform and dump to dest"""
@@ -74,14 +78,9 @@ class Parser():
             return False
 
         if type_odf == 'ods':
-            lists = []
-            for content in self.ods_get_content(printform):
-                lists.append(content)
-
-            content = lists[list_odf]
-            content = content.encode('UTF-8')
-            doc.content = dom.parseString(content)
-
+            doc = get_ods_doc_by_table_num(doc, int(list_odf))
+            for tagname, count in tags_cycle:
+                doc = clone_cycle(doc, count, tagname)
 
         doc.replace(r'{{\s*main\s*}}', '')
         doc.replace(r'{{\s*author\s*}}', author)
@@ -97,27 +96,6 @@ class Parser():
         odf.dump(doc, dest)
         return True
 
-    def xml_to_text(self, xml):
-        """Get textdata from xml"""
-        return '\n'.join([node.data for node in document.doc_order_iter(xml)
-                    if node.nodeType == node.TEXT_NODE])
-
-
-    def ods_get_content(self, odf_file):
-        """Split ods to lists"""
-
-        ods_doc = self.get_doc(odf_file)
-        content = ods_doc.toXml().replace('<table:table table:name=',
-                            '_SPLIT_TABLE_HERE_<table:table table:name=')
-        content = content.split('_SPLIT_TABLE_HERE_')
-        begin_content = content[0]
-        end_content = u'</office:spreadsheet></office:body></office:document-content>'
-        content = content[1:]
-        end_num = len(content)-1
-        content[end_num] = content[end_num].replace(
-                    u'</office:spreadsheet></office:body></office:document-content>', '')
-        for data in content:
-            yield begin_content+data+end_content
 
     def scan(self):
         """scan printform dir for parse odf_file-docs
@@ -143,10 +121,9 @@ class Parser():
                 ods_list = 0
                 yield (odf_file, title, tags, main, type_odf, ods_list)
             elif odf_file.endswith('ods'):
-                for odf_list, content in enumerate(self.ods_get_content(odf_file)):
-                    content = content.encode('UTF-8')
-                    xml = dom.parseString(content)
-                    txt = self.xml_to_text(xml)
+                for odf_list, doc in enumerate(
+                        self.ods_split_by_table(odf_file)):
+                    txt = doc.toText()
 
                     title = self.get_title(txt)
                     if title == '':
@@ -157,5 +134,137 @@ class Parser():
                     type_odf = 'ods'
                     yield (odf_file, title, tags, main, type_odf, odf_list)
 
+
+def xml_to_text(xml):
+    """Get textdata from xml"""
+    return '\n'.join([node.data for node in document.doc_order_iter(xml)
+                     if node.nodeType == node.TEXT_NODE])
+
+# Tested
+def check_cycle_template(tagname):
+    try:
+        re.search(r'^cycle_[a-zA-Z0-9]+$', tagname).group(0)
+        return True
+    except AttributeError:
+        return False
+
+# Tested
+def check_cycle(tagname):
+    try:
+        re.search(r'^cycle_[a-zA-Z0-9]+_.+$', tagname).group(0)
+        return True
+    except AttributeError:
+        return False
+
+# Tested
+def get_template_from_tagname(tagname):
+    return re.search(r'^(cycle_[a-zA-Z0-9]+)_.+$', tagname).group(1)
+
+# Tested
+def get_tagname_from_tag_with_num(tagname):
+    return re.search(r'^(cycle_[a-zA-Z0-9]+_\w+)_\d+$', tagname).group(1)
+
+# Tested
+def get_num_from_tag_with_num(tagname):
+    return re.search(r'^cycle_[a-zA-Z0-9]+_\w+_(\d+)$', tagname).group(1)
+
+def get_ods_doc_by_table_num(doc, table_num):
+    """Return document with one table
+
+    Input:
+        doc - docuemnt.Document
+        table_num - number of table [0..n]
+    Output:
+        doc - document.Document
+    """
+
+    content = doc.content
+    elem = content.documentElement
+    tables = elem.getElementsByTagName('table:table')
+    body = elem.getElementsByTagName('office:spreadsheet')
+
+    del tables[table_num]
+    for del_table in tables:
+        body[0].removeChild(del_table)
+
+    return doc
+
+
+def ods_split_by_table(odf_file):
+    """Split ODS document by tables, and return list of docs
+
+    Input: ofd_file - path to file
+    Output: yield doc
+    """
+    doc = get_doc(odf_file)
+    content = doc.content
+    elem = content.documentElement
+    tables = elem.getElementsByTagName('table:table')
+    for table_num, table in enumerate(tables):
+        doc = get_doc(odf_file)
+        yield get_ods_doc_by_table_num(doc, table_num)
+
+
+def add_num_tags(node, num, tagname):
+    """Add num for tagname in node and all childnodes
+
+    Recurse function
+
+    Input:
+        node - Node (xml.dom)
+        num - number for concat
+        tagname - tagname-template
+    """
+    if node.nodeType == node.TEXT_NODE:
+        txt = node.data
+        txt = txt.replace('%}', '%}\n')
+        for tag in re.findall(r'{%\s*(.+)\s*%}', txt):
+            split_tag = tag.split('|')
+            name = split_tag[0].strip()
+            if name.find(tagname) != -1:
+                txt = txt.replace(name, name + '_' + str(num))
+
+        txt = txt.replace('%}\n', '%}')
+        node.data = txt
+    else:
+        for nodechild in node.childNodes:
+            add_num_tags(nodechild, num, tagname)
+
+
+def clone_cycle(doc, count, tagname):
+    """Clone need rows by cycle-tagname template
+
+    Input:
+        doc - Document
+        count - Count of rows
+        tagname - template
+    Output:
+        doc
+    """
+    content = doc.content
+    tables = content.getElementsByTagName('table:table')
+    rows = content.getElementsByTagName('table:table-row')
+    for row in rows:
+        txt = row.toxml()
+        if txt.find(tagname) != -1:
+            find_row = row
+            break
+
+    for row_line in xrange(count):
+        new_row = find_row.cloneNode(1)
+        add_num_tags(new_row, row_line, tagname)
+
+        tables[0].insertBefore(new_row, find_row)
+
+    tables[0].removeChild(find_row)
+    return doc
+
+
+def get_doc(filename):
+    """get odf.doc from filename"""
+    try:
+        return odf.load(filename)
+    except odf.ReadError:
+        raise odf.ReadError
 
 # vi: ts=4

@@ -6,7 +6,7 @@
 """Tags and links view-module"""
 
 from django.shortcuts import render_to_response
-from modules import support
+from modules import support, parse_docs
 from modules.database import DataBase
 from django.contrib.auth.decorators import permission_required
 
@@ -32,7 +32,12 @@ def show(request):
             if request.user.has_perm('main.add_tag'):
                 database.add_tag(name, desc)
 
-    all_tags = database.tag.all()
+    all_db_tags = database.tag.all()
+    all_tags = []
+
+    for db_tag in all_db_tags:
+        if not parse_docs.check_cycle(db_tag.name):
+            all_tags.append(db_tag)
 
     out = []
 
@@ -71,7 +76,12 @@ def links(request):
                                   database.tag.get(id = id_tag))
 
     all_docs = database.doc.all()
-    all_tags = database.tag.all()
+    all_db_tags = database.tag.all()
+    all_tags = []
+
+    for db_tag in all_db_tags:
+        if not parse_docs.check_cycle(db_tag.name):
+            all_tags.append(db_tag)
 
     out = []
 
@@ -82,8 +92,9 @@ def links(request):
         free_tags = []
         for link in doc_links:
             tag = link.tag
-            use_tags.append(tag)
-            lns.append(link)
+            if not parse_docs.check_cycle(tag.name):
+                use_tags.append(tag)
+                lns.append(link)
 
         for tag in all_tags:
             if tag not in use_tags:

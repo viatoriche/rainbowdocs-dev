@@ -1,6 +1,16 @@
 <b>Document: {{ Title_Doc }}</b><br>
 Add data:<br>
 <form action='{{ req_url }}' method="post" >
-    {% for tag in tags %}{{ tag.desc }}: <input type="text" name="{{ tag.id }}" value="{{ tag.value }}"><br>{% endfor %}<br>
+    {% for tag in tags %}
+    {% if not tag.cycle_template %}
+        {{ tag.desc }}: <input type="text" name="{{ tag.name }}" value="{{ tag.value }}">
+        {% if tag.cycle %}
+          {# ----- #}
+        {% endif %}
+        <br>
+    {% else %}
+        <input type="hidden" name="{{ tag.name }}" value="{{ tag.value }}">
+    {% endif %}
+    {% endfor %}<br>
     <input type="submit" value="Save">
 </form>

@@ -11,10 +11,11 @@
 {% if not held_status and perms.main.delete_data %}
 <form action="{{ req_url }}" method="post"><input type="hidden" name="do" value="del_tag">
 {% endif %}
-{{ s.tag.description }}: {{ s.tag_value}}
+{{ s.tag_description }}: {{ s.tag_value}}
 {% if not held_status and perms.main.delete_data %}
-<input type="hidden" name="id_tag" value="{{ s.tag.id }}">
-<input type="submit" value="Delete">
+<input type="hidden" name="tag_name" value="{{ s.tag_name }}">
+{% if s.cycle_template %}Row: <input type="text" name="row" value="{{ s.tag_value }}">{% endif %}
+{% if not s.cycle %}<input type="submit" value="Delete">{% endif %}
 </form>
 {% else %}<br>
 {% endif %}
