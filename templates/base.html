@@ -1,0 +1,22 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+    <head>
+        {% block head %}
+        {% endblock %}
+    </head>
+    <body>
+        {% if user.is_authenticated %}
+            {% include "logout.html" %}
+            {% block header %}
+            {% endblock %}<br>
+            {% block content %}
+            {% endblock %}<br>
+            {% block footer %}
+            {% endblock %}
+        {% else %}
+            {% include "auth.html" %}
+        {% endif %}
+
+    </body>
+</html>
+

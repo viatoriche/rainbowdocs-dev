@@ -1,0 +1,19 @@
+<b>All documents: </b><br><br>
+{% for pf in scanned %}
+Title: {{ pf.1 }}<br>
+File: {{ pf.0 }}<br>
+Main: {{ pf.3 }}<br>
+{% if pf.2|length > 0 %}
+New Tags:<br>
+{% for tag in pf.2 %}
+Name: {{ tag.0 }} / Description: {{ tag.1 }}<br>
+{% endfor %}
+{% endif %}
+{% if pf.4|length > 0 %}
+DELETE TAGS (Warning, may be ERRORS):<br>
+{% for tag in pf.4 %}
+Name: {{ tag.0 }} / Description: {{ tag.1 }}<br>
+{% endfor %}
+{% endif %}
+<br>------------<br><br>
+{% endfor %}

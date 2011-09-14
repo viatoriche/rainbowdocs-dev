@@ -1,0 +1,13 @@
+<b>Openchain System</b><br>
+Links: 
+<a href="/">Main</a>
+<a href="/support/">Support</a>
+{% if perms.main.add_number %}
+<a href="/documents/new/">Create new document</a>
+{% endif %}
+{% if perms.main.can_view_number %}
+<a href="/documents/show/">List of documents</a>
+{% endif %}
+{% if perms.main.can_view_number %}
+<a href="/chains/need/">Need create ({{ Need }})</a>
+{% endif %}
