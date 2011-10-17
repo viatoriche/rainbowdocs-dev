@@ -27,18 +27,19 @@ class DataBase:
     user - User
     group - Group
     """
-
-    def __init__(self):
-        self.chain = Chain.objects
-        self.doc = Doc.objects
-        self.link = Link.objects
-        self.tag = Tag.objects
-        self.data = Data.objects
-        self.number = Number.objects
-        self.user_perms = User_perms.objects
-        self.group_perms = Group_perms.objects
-        self.user = User.objects
-        self.group = Group.objects
+    def __getattr__(self, attr):
+        return {
+                'chain': Chain.objects,
+                'doc': Doc.objects,
+                'link': Link.objects,
+                'tag': Tag.objects,
+                'data': Data.objects,
+                'number': Number.objects,
+                'user_perms': User_perms.objects,
+                'group_perms': Group_perms.objects,
+                'user': User.objects,
+                'group': Group.objects,
+               }[attr]
 
     # Tested
     def check_user_perm(self, user, doc, write = False):
